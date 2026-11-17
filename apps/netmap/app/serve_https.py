@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Mini-HTTPS-Server fuer die Netzwerkkarte (nur Standardbibliothek).
+"""Mini-Webserver fuer die Netzwerkkarte (nur Standardbibliothek).
 
-Liefert das Web-Verzeichnis per TLS auf Port 8080, sobald ein Zertifikat unter
-NETZ_CERT/NETZ_KEY existiert (Default: /certs/cert.pem + /certs/key.pem).
-Das Zertifikat wird in der Runtipi-App beim ersten Start vom Scanner-Entrypoint
-als selbstsigniertes Zertifikat erzeugt; ein eigenes Zertifikat (LAN-CA /
-Let's Encrypt / NPM) kann als cert.pem/key.pem dorthin gelegt werden und wird
-bevorzugt. Ohne Zertifikat (nach Wartezeit): Fallback auf HTTP.
+Liefert das Web-Verzeichnis per HTTP auf Port 8080.
+WICHTIG: 8080 ist bei Runtipi der internal_port, den Traefik per HTTP erreicht -
+TLS im Container wuerde "502 Bad Gateway" erzeugen. HTTPS fuer Einbettungen
+(z. B. WikiJS-iframe) am Edge terminieren (Runtipi "Local SSL certificates" /
+App mit TLS exponieren / Reverse Proxy wie NPM), nicht im Container.
 
 Zusatz-API (fuer das Menue "Einstellungen" der Karte):
   GET  /api/config -> {"topology": "<raw topology.json>", "lan_parent": "...",
@@ -133,20 +132,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def main():
+    # Plain HTTP auf dem gerouteten Port - siehe Modul-Docstring (TLS im Container => 502).
     httpd = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    waited = 0
-    while not (os.path.exists(CERT) and os.path.exists(KEY)) and waited < WAIT_CERT_S:
-        time.sleep(2)
-        waited += 2
-    if os.path.exists(CERT) and os.path.exists(KEY):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-        ctx.load_cert_chain(CERT, KEY)
-        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
-        print("HTTPS aktiv: https://<host>:%d/netzwerkkarte.html (Zertifikat: %s)" % (PORT, CERT), flush=True)
-    else:
-        print("Kein Zertifikat gefunden (%s) - Fallback auf HTTP" % CERT, flush=True)
-    print("Liefere %s auf Port %d (Config-API: /api/config -> %s)" % (WEB_DIR, PORT, CONFIG_DIR), flush=True)
+    print("Liefere %s auf Port %d (HTTP; Config-API: /api/config -> %s)" % (WEB_DIR, PORT, CONFIG_DIR), flush=True)
     httpd.serve_forever()
 
 

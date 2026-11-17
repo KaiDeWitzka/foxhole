@@ -6,12 +6,15 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/data:ro
       - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte:ro
-      - ${APP_DATA_DIR}/data/certs:/certs:ro
       - ${APP_DATA_DIR}/data/config:/config:rw
+    # WICHTIG: Auf internal_port (8080) muss der Container plain HTTP sprechen -
+    # Runtipi/Traefik routet HTTP dorthin; TLS im Container => 502 Bad Gateway.
+    # HTTPS am Edge terminieren (Runtipi "Local SSL certificates" / App mit TLS exponieren / NPM).
+    # Sofort starten (kein Warten auf die erste Scan-Datei => kein 502 in der Startphase).
     command:
       - /bin/sh
       - -c
-      - until [ -f /data/web/netzwerkkarte.html ]; do sleep 2; done; i=0; until [ -f /certs/cert.pem ] || [ $i -ge 30 ]; do sleep 2; i=$((i+1)); done; if [ -f /opt/netzwerkkarte/serve_https.py ]; then exec python3 /opt/netzwerkkarte/serve_https.py; else exec python3 -m http.server 8080 --directory /data/web; fi
+      - if [ -f /opt/netzwerkkarte/serve_https.py ]; then exec python3 /opt/netzwerkkarte/serve_https.py; else exec python3 -m http.server 8080 --directory /data/web; fi
     x-runtipi:
       is_main: true
       internal_port: 8080
@@ -33,7 +36,7 @@ services:
       NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
       NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-}
     volumes:
-      # data/ aus dem App-Repo wird von Runtipi nach ${APP_DATA_DIR}/data kopiert
+      # data/ aus dem App-Repo wird von Runtipi bei der Installation nach ${APP_DATA_DIR}/data kopiert
       - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte:ro
       - ${APP_DATA_DIR}/data:/data
     entrypoint:
