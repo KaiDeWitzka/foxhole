@@ -19,12 +19,14 @@ interaktiv: Zoom/Pan, Klick auf ein Gerät für Details (bei Router/Switch inkl.
 - **Subnetz** und **Scan-Intervall** sind in den App-Einstellungen von Runtipi konfigurierbar
   (`NETZ_SUBNET`, z. B. `192.168.178.0/24`; `NETZ_SCAN_INTERVAL` in Sekunden, Standard 900).
 - Die Ergebnisse liegen unter `data/web/` (`netzwerkkarte.html` + `scan.json`).
-- **App-Update läuft in-place** (kein Löschen/Neuinstallieren nötig): Scanner-Skript und Entrypoint liegen
-  unter `app/` im App-Repo und werden direkt von dort gemountet (`./app:/opt/netzwerkkarte`) – nach einem
-  Store-Update ist sofort die neue Version aktiv. Laufzeitdaten (`scan.json`, `web/`, `certs/`, `config/` mit
-  `topology.json` + `settings.json` aus dem Web-Menü „Einstellungen“) liegen persistent in
-  `${APP_DATA_DIR}/data` und überleben Update, Start/Stop **und** sogar das Löschen der App, sofern Runtipi
-  beim Löschen „Daten behalten“ gewählt wird. Auch die App-Einstellungen (`NETZ_*`) bleiben bei Update/Stop erhalten.
+- **App-Update läuft in-place** (kein Löschen/Neuinstallieren nötig): Runtipi kopiert den `data/`-Ordner des
+  App-Repos nur bei der **Erstinstallation** nach `${APP_DATA_DIR}/data`. Damit Updates trotzdem sofort greifen,
+  mounten die Container zusätzlich das `apps/`-Verzeichnis der Runtipi-Installation und übernehmen beim Start
+  automatisch die frischen Skripte aus `apps/<store>/netmap/app/` (Fallback: die `data/app`-Kopie).
+  Laufzeitdaten (`scan.json`, `web/`, `certs/`, `config/` mit `topology.json` + `settings.json` aus dem Web-Menü
+  „Einstellungen“) liegen persistent in `${APP_DATA_DIR}/data` und überleben Update, Start/Stop **und** sogar das
+  Löschen der App, sofern Runtipi beim Löschen „Daten behalten“ gewählt wird. Auch die App-Einstellungen
+  (`NETZ_*`) bleiben bei Update/Stop erhalten – nur ein echtes Löschen der App (ohne „Daten behalten“) entfernt sie.
 
 ## Exporte (PDF, CSV, Markdown, JSON)
 
@@ -104,7 +106,8 @@ eine eigene Domain) und kannst sie bedenkenlos in HTTPS-WikiJS einbetten.
   (`http://192.168.178.1:49000`); ab v1.7.1 wird ein fehlendes `http://` automatisch ergaenzt.
 - **Docker-172.x-Geraete in der Karte:** ab v1.7.1 werden ARP-Eintraege anderer Interfaces
   (z. B. Docker-Bridges) herausgefiltert - nur das gescannte Subnetz landet in der Karte.
-- Nach einem App-Update ist **kein** Neuinstallieren nötig (Skripte kommen direkt aus `./app`, Daten bleiben in `app-data` erhalten).
+- Nach einem App-Update ist **kein** Neuinstallieren nötig (Skripte werden beim Start aus `apps/.../netmap/app` aktualisiert, Daten bleiben in `app-data` erhalten).
+- **Scanner startet nicht / `entrypoint.sh` fehlt:** tritt auf, wenn das Skript-Mount ins Leere zeigt (z. B. nach manuellem Compose-Eingriff). Fix: App normal über den Store aktualisieren und neu starten – v1.9.1 mountet wieder `${APP_DATA_DIR}/data/app` plus das `apps/`-Verzeichnis.
 
 ## Quelle
 
