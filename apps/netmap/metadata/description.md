@@ -73,24 +73,28 @@ Alternativ ohne iframe: normaler Markdown-Link auf `https://<runtipi-host>:8399/
 
 ## HTTPS / SSL
 
-**Aufruf der Webseite: `https://<runtipi-host>:8399/netzwerkkarte.html`** — seit v1.3.0 liefert die
-App die Karte per HTTPS aus (http:// funktioniert dann nicht mehr). Beim selbstsignierten
-Zertifikat zeigt der Browser eine Warnung → einmalig „Erweitert → trotzdem laden“ (oder eigenes
-Zertifikat hinterlegen, s. u.). Ohne Zertifikat fällt die App automatisch auf HTTP zurück.
+Der Container spricht auf `internal_port` (8080) **plain HTTP** - Runtipi/Traefik routet HTTP
+dorthin; TLS im Container wuerde **502 Bad Gateway** erzeugen (wurde in v1.7.1 gefixt).
 
-Die Web-UI liefert die Karte **per HTTPS** auf dem App-Port (8399) aus:
+HTTPS fuer den Aufruf (und das WikiJS-iframe, damit kein Mixed-Content blockiert) wird am **Edge**
+terminiert, z. B.:
 
-- Beim ersten Start erzeugt der Scanner ein **selbstsigniertes Zertifikat** in
-  `${APP_DATA_DIR}/data/certs/` (SAN enthält die Host-IP des Servers). Im Browser erscheint
-  daher eine Zertifikatswarnung — einmal "trotzdem laden" bzw. das Zertifikat im System
-  vertrauen (Runtipi ≥ 1.5 bietet dafür ein eigenes Zertifikat an, das man im Runtipi-Dashboard
-  unter Einstellungen herunterladen und ins Trust-Store legen kann).
-- **Eigenes Zertifikat** (z. B. von LAN-CA, Let's Encrypt oder Nginx Proxy Manager): einfach
-  `cert.pem` + `key.pem` nach `${APP_DATA_DIR}/data/certs/` legen — vorhandene Dateien werden
-  nicht überschrieben und bevorzugt verwendet.
-- Ohne Zertifikat (z. B. kein `openssl` verfügbar): automatischer Fallback auf HTTP.
+- Runtipi **"Local SSL certificates"** bzw. die App mit TLS exponieren, oder
+- ein Reverse Proxy wie **Nginx Proxy Manager** vor der App.
 
-Damit ist die Karte auch aus einem **HTTPS-WikiJS** per iframe einbettbar (kein Mixed-Content mehr).
+Dann erreichst du die Karte z. B. als `https://<runtipi-host>:8399/netzwerkkarte.html` (oder ueber
+eine eigene Domain) und kannst sie bedenkenlos in HTTPS-WikiJS einbetten.
+
+## Troubleshooting
+
+- **502 Bad Gateway:** Kam in v1.6.x/1.7.0 vor, wenn der Container TLS auf Port 8080 sprach oder
+  auf die erste Scan-Datei wartete. Ab v1.7.1 startet der Web-Container sofort mit plain HTTP.
+  Pruefen: `docker logs netmap` (Web-UI) und `docker logs netmap-scanner` (Scan).
+- **TR-064-Fehler "unknown url type":** `NETZ_FRITZ_URL` muss das Schema enthalten
+  (`http://192.168.178.1:49000`); ab v1.7.1 wird ein fehlendes `http://` automatisch ergaenzt.
+- **Docker-172.x-Geraete in der Karte:** ab v1.7.1 werden ARP-Eintraege anderer Interfaces
+  (z. B. Docker-Bridges) herausgefiltert - nur das gescannte Subnetz landet in der Karte.
+- Nach einem App-Update kurz **neu installieren**, damit `data/app/` frisch nach `app-data` kopiert wird.
 
 ## Quelle
 
