@@ -5,9 +5,11 @@ services:
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data:ro
-      # Skripte direkt aus dem App-Ordner (./app) - NICHT aus data/app kopieren:
-      # so greift ein App-Update sofort (in-place), ohne Neuinstallation.
-      - ./app:/opt/netzwerkkarte:ro
+      # Skripte: Primaer die bei der Installation kopierte data/app-Kopie ...
+      - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte:ro
+      # ... plus das apps/-Verzeichnis der Runtipi-Installation fuer In-Place-Updates
+      # (Runtipi kopiert data/ nur bei der Erstinstallation; frische Skripte liegen in apps/<store>/netmap/app)
+      - ${APP_DATA_DIR}/../../../apps:/runtipi-apps:ro
       - ${APP_DATA_DIR}/data/config:/config:rw
     # WICHTIG: Auf internal_port (8080) muss der Container plain HTTP sprechen -
     # Runtipi/Traefik routet HTTP dorthin; TLS im Container => 502 Bad Gateway.
@@ -16,7 +18,12 @@ services:
     command:
       - /bin/sh
       - -c
-      - if [ -f /opt/netzwerkkarte/serve_https.py ]; then exec python3 /opt/netzwerkkarte/serve_https.py; else exec python3 -m http.server 8080 --directory /data/web; fi
+      - >-
+        STORE=$(basename "$(dirname "$APP_DATA_DIR")"); APP=$(basename "$APP_DATA_DIR");
+        FRESH="/runtipi-apps/$STORE/$APP/app";
+        if [ -f "$FRESH/serve_https.py" ]; then exec python3 "$FRESH/serve_https.py";
+        elif [ -f /opt/netzwerkkarte/serve_https.py ]; then exec python3 /opt/netzwerkkarte/serve_https.py;
+        else exec python3 -m http.server 8080 --directory /data/web; fi
     x-runtipi:
       is_main: true
       internal_port: 8080
@@ -38,9 +45,10 @@ services:
       NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
       NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-}
     volumes:
-      # Skripte direkt aus dem App-Ordner (./app) - bei App-Update sofort aktiv (in-place).
-      # Laufzeitdaten (scan.json, web/, certs/, config/) liegen persistent in ${APP_DATA_DIR}/data.
-      - ./app:/opt/netzwerkkarte:ro
+      # Skripte rw, damit entrypoint.sh bei App-Update frische Versionen aus /runtipi-apps kopieren kann
+      # (In-Place-Update). Laufzeitdaten (scan.json, web/, certs/, config/) in ${APP_DATA_DIR}/data bleiben erhalten.
+      - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte
+      - ${APP_DATA_DIR}/../../../apps:/runtipi-apps:ro
       - ${APP_DATA_DIR}/data:/data
     entrypoint:
       - /bin/sh
