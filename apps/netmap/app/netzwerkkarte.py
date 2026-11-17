@@ -22,6 +22,10 @@ Topologie (wer hängt an welchem Switch/Repeater/Router), siehe README „Topolo
 WAN-IP + Verbindungsstatus der FRITZ!Box (TR-064 WANIPConnection/WANPPPConnection)
 landen als data["wan"] in scan.json und am Internet-Knoten der Karte.
 
+Abgleich Scan <-> TR-064-Hosts-Liste: Geraete, die nur die Box kennt (antworten nicht
+auf Ping/TCP-Scan), werden als eigene Eintraege uebernommen; MAC/Hostname werden aus der
+Box nachgetragen; inaktive Geraete und Scan-Geraete ohne TR-064-Eintrag werden markiert.
+
 Erkannt werden u. a.: Router/Gateway, Switche/Netzwerkgeraete, Server/NAS,
 Clients, Drucker und Smart-Home-/IoT-Geraete inkl. IP, MAC, Hostname,
 Hersteller (OUI) und offenen Ports.
@@ -45,7 +49,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 
 # ---------------------------------------------------------------------------
 # Hersteller-Datenbank (OUI, kuratierte Auswahl haeufiger Hersteller)
@@ -496,7 +500,7 @@ def tr064_hosts(base_url, user, password, timeout=5):
         for i in range(n):
             h = _tr064_call(opener, base_url, "GetGenericHostEntry", {"NewIndex": str(i)})
             mac = norm_mac_full(h.get("NewMACAddress", ""))
-            if mac:
+            if mac or h.get("NewIPAddress"):
                 hosts.append({"ip": h.get("NewIPAddress", ""), "mac": mac,
                               "hostname": h.get("NewHostName", ""),
                               "interface": h.get("NewInterfaceType", ""),
@@ -577,8 +581,12 @@ def load_topology_file(path):
 
 def resolve_topology(devices, gateway, fritz_url=None, fritz_user=None, fritz_pass=None,
                      repeater_ips=None, lan_parent=None, topology_file=None,
-                     snmp_community=None, snmp_switches=None):
-    """'connected_to' pro Geraet: TR-064 (Box/Repeater) -> topology.json -> Gateway (Fallback)."""
+                     snmp_community=None, snmp_switches=None, dns_list=None, local_ip=None):
+    """'connected_to' pro Geraet: TR-064 (Box/Repeater) -> topology.json -> Gateway (Fallback).
+
+    Ausserdem Abgleich Scan <-> TR-064: TR-only Hosts werden als Geraete ergaenzt,
+    MAC/Hostname nachgetragen, inaktive markiert, Scan-Geraete ohne TR-Eintrag markiert.
+    """
     add_connected_to(devices, gateway)
     fritz_user = fritz_user or os.environ.get("NETZ_FRITZ_USER", "")
     fritz_pass = fritz_pass or os.environ.get("NETZ_FRITZ_PASS", "")
@@ -592,16 +600,62 @@ def resolve_topology(devices, gateway, fritz_url=None, fritz_user=None, fritz_pa
         "/data/config/topology.json" if os.path.exists("/data/config/topology.json") else "")
     if fritz_user and fritz_pass and fritz_url:
         box_hosts = tr064_hosts(fritz_url, fritz_user, fritz_pass) or []
-        by_mac = {h["mac"]: h for h in box_hosts}
+        by_mac = {h["mac"]: h for h in box_hosts if h["mac"]}
         by_ip = {h["ip"]: h for h in box_hosts if h["ip"]}
         repeater_macs = {}
+        all_hosts = [(h, "") for h in box_hosts]
         for rip in repeater_ips:
             rh = tr064_hosts("http://%s:49000" % rip, fritz_user, fritz_pass)
             if rh:
                 for h in rh:
-                    repeater_macs[h["mac"]] = rip
+                    if h["mac"]:
+                        repeater_macs[h["mac"]] = rip
+                    all_hosts.append((h, rip))
         if box_hosts or repeater_macs:
             print("TR-064: %d Hosts an der Box, %d MAC(s) ueber Repeater" % (len(box_hosts), len(repeater_macs)))
+        # --- Abgleich Scan <-> TR-064-Hosts-Liste (Box + Repeater) ---
+        if all_hosts:
+            scan_by_mac = {norm_mac_full(d.get("mac", "")): d for d in devices if d.get("mac")}
+            scan_by_ip = {d["ip"]: d for d in devices}
+            tr_seen = set()
+            added = 0
+            for h, rip in all_hosts:
+                mac = h["mac"]
+                ip = h.get("ip", "")
+                if mac:
+                    tr_seen.add(mac)
+                if ip:
+                    tr_seen.add(ip)
+                d = (scan_by_mac.get(mac) if mac else None) or (scan_by_ip.get(ip) if ip else None)
+                if d is None:
+                    if not (ip or mac):
+                        continue
+                    d = {"ip": ip, "mac": h.get("mac", ""), "hostname": h.get("hostname", ""),
+                         "vendor": "", "ports": [], "category": "client", "notes": [], "connected_to": ""}
+                    classify(d, gateway, dns_list or [], local_ip or "")
+                    d["notes"].append("nur per TR-064 bekannt (antwortet nicht auf Scan)"
+                                      + (" [Repeater %s]" % rip if rip else ""))
+                    devices.append(d)
+                    added += 1
+                    if mac:
+                        scan_by_mac[mac] = d
+                    if ip:
+                        scan_by_ip[ip] = d
+                else:
+                    if not d.get("mac") and mac:
+                        d["mac"] = h.get("mac", "")
+                    if not d.get("hostname") and h.get("hostname"):
+                        d["hostname"] = h["hostname"]
+                if h.get("active") == "0" and "laut TR-064 inaktiv" not in d["notes"]:
+                    d["notes"].append("laut TR-064 inaktiv")
+            if added:
+                print("TR-064-Merge: %d Geraet(e) nur aus der Hosts-Liste uebernommen" % added)
+            for d in devices:
+                if gateway and d["ip"] == gateway:
+                    continue
+                mac = norm_mac_full(d.get("mac", ""))
+                if d["ip"] not in tr_seen and (not mac or mac not in tr_seen):
+                    d["notes"].append("nicht in TR-064-Hosts-Liste der Box")
         for d in devices:
             if gateway and d["ip"] == gateway:
                 continue
@@ -859,7 +913,7 @@ def run_scan(subnet=None, use_api=False, max_hosts=1024, topo=None):
         # Klassifikation erneut mit Herstellerangabe
         for d in devices:
             classify(d, gateway, dns_list, local_ip)
-    resolve_topology(devices, gateway, **(topo or {}))
+    resolve_topology(devices, gateway, dns_list=dns_list, local_ip=local_ip, **(topo or {}))
 
     data = {
         "version": VERSION,
@@ -912,10 +966,16 @@ def demo_data():
             d("192.168.178.53", "34:98:7A:11:22:33", "shelly-wohnzimmer", "Allterco (Shelly)",
               [80], "smart"),
             d("192.168.178.60", "50:C7:BF:10:20:30", "tv", "TP-Link", [8009], "smart"),
+            d("192.168.178.44", "DE:AD:BE:EF:00:44", "handy-anna", "Apple", [], "client",
+              ["nur per TR-064 bekannt (antwortet nicht auf Scan)", "WLAN direkt an der FRITZ!Box"]),
+            d("192.168.178.55", "AA:BB:CC:55:66:77", "tablet", "Samsung", [], "client",
+              ["nur per TR-064 bekannt (antwortet nicht auf Scan) [Repeater 192.168.178.21]",
+               "WLAN ueber Repeater 192.168.178.21", "laut TR-064 inaktiv"]),
     ]
     add_connected_to(devices, "192.168.178.1")
     demo_topo = {"192.168.178.40": "192.168.178.2", "192.168.178.31": "192.168.178.2",
-                 "192.168.178.60": "192.168.178.3", "192.168.178.51": "192.168.178.3"}
+                 "192.168.178.60": "192.168.178.3", "192.168.178.51": "192.168.178.3",
+                 "192.168.178.55": "192.168.178.21"}
     for d in devices:
         if d["ip"] in demo_topo:
             d["connected_to"] = demo_topo[d["ip"]]

@@ -5,7 +5,9 @@ services:
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data:ro
-      - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte:ro
+      # Skripte direkt aus dem App-Ordner (./app) - NICHT aus data/app kopieren:
+      # so greift ein App-Update sofort (in-place), ohne Neuinstallation.
+      - ./app:/opt/netzwerkkarte:ro
       - ${APP_DATA_DIR}/data/config:/config:rw
     # WICHTIG: Auf internal_port (8080) muss der Container plain HTTP sprechen -
     # Runtipi/Traefik routet HTTP dorthin; TLS im Container => 502 Bad Gateway.
@@ -36,8 +38,9 @@ services:
       NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
       NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-}
     volumes:
-      # data/ aus dem App-Repo wird von Runtipi bei der Installation nach ${APP_DATA_DIR}/data kopiert
-      - ${APP_DATA_DIR}/data/app:/opt/netzwerkkarte:ro
+      # Skripte direkt aus dem App-Ordner (./app) - bei App-Update sofort aktiv (in-place).
+      # Laufzeitdaten (scan.json, web/, certs/, config/) liegen persistent in ${APP_DATA_DIR}/data.
+      - ./app:/opt/netzwerkkarte:ro
       - ${APP_DATA_DIR}/data:/data
     entrypoint:
       - /bin/sh
