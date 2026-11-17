@@ -36,6 +36,9 @@ rechts als Download-Buttons angezeigt: `netzwerkkarte.pdf` (A4 quer, reine Stand
 In der Karte zeigt jeder Router/Switch/Repeater seine **angeschlossenen Geräte** (Klick hebt sie
 hervor; Panel und Tabelle zeigen „Verbunden mit“). Automatisch über die App-Einstellungen:
 
+- **WAN-IP + Verbindungsstatus:** liest die Box zusätzlich per TR-064 (`WANIPConnection`)
+  aus – erscheint als Caption am **Internet-Knoten** der Karte (z. B. „Connected · 84.x.x.x“),
+  im Klick-Panel des Internet-Knotens, in `scan.json` (`wan`) und in den MD/PDF-Exporten.
 - **FRITZ!Box per TR-064:** `NETZ_FRITZ_URL`, `NETZ_FRITZ_USER`, `NETZ_FRITZ_PASS` in den
   App-Einstellungen (TR-064 in der Box aktivieren: *Heimnetz → Netzwerk → Netzwerkeinstellungen
   → „Anwendungen im Heimnetz erlauben (TR-064)“*). WLAN-Clients direkt an der Box werden dem
@@ -48,6 +51,10 @@ hervor; Panel und Tabelle zeigen „Verbunden mit“). Automatisch über die App
   Liest die MAC→Port-Tabelle (`dot1dTpFdbTable`) — funktioniert nur bei SNMP-fähigen
   verwalteten Switchen (z. B. TL-SG3xxx, Netgear GSxxxE, MikroTik, UniFi), **nicht** beim
   TL-SG108E (kein SNMP in irgendeiner Firmware).
+
+In der Karte hängt außerdem jedes Gerät als Caption unter seinem Namen, an welchem Gerät es
+angeschlossen ist („→ switch-wohnzimmer (192.168.178.2)“) – dieselbe Info wie die Spalte
+„Verbunden mit“ in der Tabellenansicht.
 
 **Manuelle Ergänzungen** (z. B. für den TL-SG108E) und alle weiteren Einstellungen pflegst du direkt
 in der Webseite über das **Menü „Einstellungen“** (oben rechts neben Karte/Tabelle): Mapping

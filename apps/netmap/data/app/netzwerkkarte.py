@@ -19,6 +19,9 @@ Topologie (wer hängt an welchem Switch/Repeater/Router), siehe README „Topolo
   NETZ_SNMP_COMMUNITY, NETZ_SNMP_SWITCHES      # SNMPv2c CAM-Tabelle verwalteter Switche
   NETZ_LAN_PARENT, NETZ_TOPOLOGY               # LAN-Parent + manuelles topology.json
 
+WAN-IP + Verbindungsstatus der FRITZ!Box (TR-064 WANIPConnection/WANPPPConnection)
+landen als data["wan"] in scan.json und am Internet-Knoten der Karte.
+
 Erkannt werden u. a.: Router/Gateway, Switche/Netzwerkgeraete, Server/NAS,
 Clients, Drucker und Smart-Home-/IoT-Geraete inkl. IP, MAC, Hostname,
 Hersteller (OUI) und offenen Ports.
@@ -42,7 +45,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 
 # ---------------------------------------------------------------------------
 # Hersteller-Datenbank (OUI, kuratierte Auswahl haeufiger Hersteller)
@@ -393,7 +396,9 @@ NAS_VENDOR_WORDS = ("synology", "qnap", "western digital", "seagate", "lacie",
                     "terramaster", "asustor")
 SERVER_HOST_WORDS = ("nas", "server", "proxmox", "esxi", "vmware", "backup",
                      "pi-hole", "pihole", "homeassistant", "hass", "docker")
-SERVER_PORTS = {21, 22, 25, 53, 445, 3306, 3389, 5432, 5900, 10000, 32400, 5000}
+# Starke Server-Signale; 53/5000 entfernt (UPnP/DNS bieten viele Router/APs/IoT an
+# und sorgten fuer False-Positives als "server")
+SERVER_PORTS = {21, 22, 25, 445, 3306, 3389, 5432, 5900, 10000, 32400}
 PRINTER_PORTS = {9100, 631, 515}
 IOT_PORTS = {1883, 8883, 5683, 8009, 5353}
 
@@ -453,8 +458,8 @@ def _tr064_opener(base_url, user, password):
     return urllib.request.build_opener(urllib.request.HTTPDigestAuthHandler(pw))
 
 
-def _tr064_call(opener, base_url, action, params=None, timeout=5):
-    svc = "urn:dslforum-org:service:Hosts:1"
+def _tr064_call(opener, base_url, action, params=None, timeout=5,
+                svc="urn:dslforum-org:service:Hosts:1", path="/upnp/control/hosts"):
     body = ('<?xml version="1.0"?>'
             '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" '
             's:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
@@ -463,7 +468,7 @@ def _tr064_call(opener, base_url, action, params=None, timeout=5):
         body += "<%s>%s</%s>" % (k, v, k)
     body += "</u:%s></s:Body></s:Envelope>" % action
     req = urllib.request.Request(
-        base_url.rstrip("/") + "/upnp/control/hosts",
+        base_url.rstrip("/") + path,
         data=body.encode("utf-8"), method="POST",
         headers={"Content-Type": 'text/xml; charset="utf-8"',
                  "SOAPAction": '%s#%s' % (svc, action)})
@@ -481,6 +486,9 @@ def tr064_hosts(base_url, user, password, timeout=5):
     """Hosts-Liste eines FRITZ!-Geraets (Box oder Repeater) per TR-064 (Service Hosts:1)."""
     if not (user and password and base_url):
         return None
+    # Scheme ergaenzen, falls nur "host:port" konfiguriert wurde (sonst: urlopen "unknown url type")
+    if "://" not in base_url:
+        base_url = "http://" + base_url
     try:
         opener = _tr064_opener(base_url, user, password)
         n = int(_tr064_call(opener, base_url, "GetHostNumberOfEntries").get("NewHostNumberOfEntries", "0") or 0)
@@ -497,6 +505,39 @@ def tr064_hosts(base_url, user, password, timeout=5):
     except Exception as e:
         print("TR-064-Abfrage %s fehlgeschlagen: %s" % (base_url, e))
         return None
+
+
+def tr064_wan_info(base_url, user, password, timeout=5):
+    """Externe WAN-IP + Verbindungsstatus der FRITZ!Box per TR-064.
+
+    WANIPConnection:1 (/upnp/control/wanipconn), Fallback WANPPPConnection:1
+    (/upnp/control/wanpppconn1). Liefert {"wan_ip", "status", "error", "uptime",
+    "service"} oder None, wenn kein WAN-Service antwortet.
+    """
+    if not (user and password and base_url):
+        return None
+    opener = _tr064_opener(base_url, user, password)
+    for svc, path in (("urn:dslforum-org:service:WANIPConnection:1", "/upnp/control/wanipconn"),
+                      ("urn:dslforum-org:service:WANPPPConnection:1", "/upnp/control/wanpppconn1")):
+        try:
+            try:
+                st = _tr064_call(opener, base_url, "GetStatusInfo", svc=svc, path=path, timeout=timeout)
+            except Exception:
+                st = _tr064_call(opener, base_url, "GetInfo", svc=svc, path=path, timeout=timeout)
+            try:
+                ip = _tr064_call(opener, base_url, "GetExternalIPAddress", svc=svc, path=path, timeout=timeout)
+            except Exception:
+                ip = {}
+            wan = {"service": svc.split("service:")[-1], "wan_ip": ip.get("NewExternalIPAddress", ""),
+                   "status": st.get("NewConnectionStatus", ""), "error": st.get("NewLastConnectionError", ""),
+                   "uptime": st.get("NewUptime", "")}
+            if wan["wan_ip"] or wan["status"]:
+                print("TR-064 WAN: %s (%s, IP %s)" % (wan["status"], wan["service"], wan["wan_ip"] or "?"))
+                return wan
+        except Exception:
+            continue
+    print("TR-064 WAN-Abfrage %s fehlgeschlagen (kein WANIPConnection/WANPPPConnection)" % base_url)
+    return None
 
 
 def _web_config_all():
@@ -773,9 +814,12 @@ def run_scan(subnet=None, use_api=False, max_hosts=1024, topo=None):
                     alive.append(ip)
             except Exception:
                 pass
-    # ARP-Tabelle nach dem Scan aktualisieren (Kernel hat MACs aufgelöst)
+    # ARP-Tabelle nach dem Scan aktualisieren (Kernel hat MACs aufgelöst).
+    # Nur Eintraege aus dem gescannten Subnetz uebernehmen - im Host-Netzwerkmodus
+    # enthaelt /proc/net/arp sonst auch andere Interfaces (z. B. Docker-Bridges 172.x).
     arp = arp_table()
-    alive = sorted(set(alive) | set(arp.keys()), key=lambda ip: ipaddress.ip_address(ip))
+    arp_ips = {ip for ip in arp if ipaddress.ip_address(ip) in net}
+    alive = sorted(set(alive) | arp_ips, key=lambda ip: ipaddress.ip_address(ip))
     print("%d aktive Geraete gefunden. Port-Scan ..." % len(alive))
 
     devices = []
@@ -826,6 +870,11 @@ def run_scan(subnet=None, use_api=False, max_hosts=1024, topo=None):
         "dns": dns_list,
         "devices": devices,
     }
+    f_user = (topo or {}).get("fritz_user") or os.environ.get("NETZ_FRITZ_USER", "")
+    f_pass = (topo or {}).get("fritz_pass") or os.environ.get("NETZ_FRITZ_PASS", "")
+    f_url = (topo or {}).get("fritz_url") or os.environ.get("NETZ_FRITZ_URL", "") or (
+        "http://%s:49000" % gateway if gateway else "")
+    data["wan"] = tr064_wan_info(f_url, f_user, f_pass) if (f_user and f_pass and f_url) else {}
     return data
 
 
@@ -879,6 +928,8 @@ def demo_data():
         "gateway": "192.168.178.1",
         "dns": ["192.168.178.1"],
         "devices": devices,
+        "wan": {"service": "WANIPConnection:1", "wan_ip": "84.123.45.67",
+                "status": "Connected", "error": "", "uptime": "482913"},
     }
 
 
@@ -910,13 +961,18 @@ def export_csv(data, path):
 def export_md(data, path):
     def esc(s):
         return str(s or "").replace("|", "\\|").replace("\n", " ")
+    wan = data.get("wan") or {}
+    wan_line = ("- WAN: %s · Status: %s" % (wan.get("wan_ip") or "-", wan.get("status") or "-")) if wan else ""
     lines = [
         "# Netzwerkkarte",
         "",
         "- Erzeugt: %s (netzwerkkarte.py v%s)" % (data.get("generated", ""), data.get("version", VERSION)),
         "- Subnetz: %s · Gateway: %s · Geräte: %d" % (
             data.get("subnet", ""), data.get("gateway", "") or "-", len(data.get("devices", []))),
-        "",
+    ]
+    if wan_line:
+        lines.append(wan_line)
+    lines += [
         "| IP | Hostname | MAC | Hersteller | Kategorie | Verbunden mit | Offene Ports | Notizen |",
         "|---|---|---|---|---|---|---|---|",
     ]
@@ -937,6 +993,7 @@ def _pdf_escape(s):
 def export_pdf(data, path):
     """Minimaler PDF-Writer (nur Standardbibliothek): A4 quer, Geraetetabelle, paginiert."""
     devs = data.get("devices", [])
+    wan = data.get("wan") or {}
     W, H, M = 842, 595, 28
     cols = [("IP", 62), ("Hostname", 95), ("MAC", 92), ("Hersteller", 100), ("Kategorie", 62),
             ("Verbunden mit", 78), ("Ports", 150), ("Notizen", W - 2 * M - 639)]
@@ -964,9 +1021,11 @@ def export_pdf(data, path):
     for i, rows_page in enumerate(pages):
         ops = [
             tline("F2", 14, M, H - M + 6, "Netzwerkkarte (v%s)" % data.get("version", VERSION)),
-            tline("F1", 8, M, H - M - 8, "Erzeugt: %s | Subnetz: %s | Gateway: %s | Geraete: %d"
+            tline("F1", 8, M, H - M - 8, "Erzeugt: %s | Subnetz: %s | Gateway: %s | Geraete: %d%s"
                   % (data.get("generated", ""), data.get("subnet", ""),
-                     data.get("gateway", "") or "-", len(devs))),
+                     data.get("gateway", "") or "-", len(devs),
+                     (" | WAN: %s (%s)" % (wan.get("wan_ip") or "-", wan.get("status") or "-"))
+                     if data.get("wan") else "")),
         ]
         y = H - M - 26
         x = M
@@ -1053,6 +1112,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .node circle { stroke:#0f1620; stroke-width:2; }
   .node text.icon { font-size:20px; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
   .node text.lbl { font-size:11px; fill:var(--muted); text-anchor:middle; pointer-events:none; }
+  .node text.sub { font-size:9px; fill:var(--muted); opacity:.85; text-anchor:middle; pointer-events:none; }
   .node:hover circle { stroke:#fff; stroke-width:3; }
   .node.dim { opacity:.15; }
   .node.off { display:none; }
@@ -1175,6 +1235,15 @@ const NS="http://www.w3.org/2000/svg";
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function labelOf(n){ if(n.id==="internet") return "Internet";
   const d=n.dev||{}; return d.hostname || d.ip; }
+function subOf(n){
+  if(n.id==="internet"){ const w=DATA.wan||{};
+    if(w.wan_ip) return (w.status? w.status+" · " : "")+w.wan_ip;
+    return w.status||""; }
+  const d=n.dev||{}; const p=d.connected_to||"";
+  if(!p || p===DATA.gateway) return "";
+  const pd=(DATA.devices||[]).find(x=>x.ip===p);
+  return "→ "+((pd&&pd.hostname)?(pd.hostname+" ("+p+")"):p);
+}
 
 function buildGraph(){
   nodes=[]; edges=[]; byId={};
@@ -1209,7 +1278,9 @@ function buildGraph(){
     ic.setAttribute("class","icon"); ic.textContent=c.icon;
     const lb=document.createElementNS(NS,"text");
     lb.setAttribute("class","lbl"); lb.setAttribute("y","36"); lb.textContent=labelOf(n);
-    g.appendChild(cir); g.appendChild(ic); g.appendChild(lb);
+    const sb=document.createElementNS(NS,"text");
+    sb.setAttribute("class","sub"); sb.setAttribute("y","49"); sb.textContent=subOf(n);
+    g.appendChild(cir); g.appendChild(ic); g.appendChild(lb); g.appendChild(sb);
     g.addEventListener("pointerdown",ev=>{
       ev.stopPropagation(); moved=false; dragging=n; n.fixed=true;
       svg.setPointerCapture(ev.pointerId); svg.classList.add("panning"); heat();
@@ -1325,7 +1396,29 @@ function clearSel(){
 function select(n){
   clearSel();
   const d=n.dev;
-  if(!d){ panel.classList.add("hidden"); return; }
+  if(!d && n.id!=="internet"){ panel.classList.add("hidden"); return; }
+  if(!d){
+    const w=DATA.wan||{};
+    if(DATA.gateway && byId[DATA.gateway]) byId[DATA.gateway].el.classList.add("conn");
+    nodes.forEach(x=>{ if(x!==n && x.id!==DATA.gateway) x.el.classList.add("fade"); });
+    edges.forEach(e=>{ if(e.a==="internet"||e.b==="internet") e.el.classList.add("hot"); });
+    const rows=[
+      "<tr><td>WAN-IP</td><td>"+esc(w.wan_ip||"-")+"</td></tr>",
+      "<tr><td>Status</td><td>"+esc(w.status||"-")+"</td></tr>",
+    ];
+    if(w.uptime) rows.push("<tr><td>Verbindungsdauer</td><td>"+esc(w.uptime)+" s</td></tr>");
+    if(w.error) rows.push("<tr><td>Letzter Fehler</td><td>"+esc(w.error)+"</td></tr>");
+    rows.push("<tr><td>Gateway</td><td>"+esc(DATA.gateway||"-")+"</td></tr>");
+    rows.push("<tr><td>Quelle</td><td>TR-064 "+esc(w.service||"-")+"</td></tr>");
+    panel.innerHTML="<button class='close' onclick='document.getElementById(\"panel\").classList.add(\"hidden\")'>&times;</button>"
+      +"<h2>Internet</h2>"
+      +"<div class='cat' style='background:"+CATS.internet.color+"'>"+CATS.internet.icon+" "+esc(CATS.internet.label)+"</div>"
+      +"<table>"+rows.join("")+"</table>";
+    panel.querySelector(".close").addEventListener("click", clearSel);
+    panel.classList.remove("hidden");
+    nodes.forEach(x=>x.el.classList.toggle("selected", x===n));
+    return;
+  }
   const c=CATS[d.category]||CATS.unknown;
   const pid=parentIdOf(d), kids=childIdsOf(d);
   nodes.forEach(x=>{
@@ -1539,9 +1632,11 @@ def main():
     print("  %d Geraete: %s" % (
         len(data["devices"]),
         ", ".join("%s (%s)" % (d["ip"], d["category"]) for d in data["devices"]) or "keine"))
-    print("\nIn WikiJS einbinden (siehe README.md): Datei z. B. per 'python3 -m http.server 8080' hosten")
-    print("und in einer WikiJS-Markdown-Seite (WikiJS 3.x hat keinen HTML-Editor mehr) einfuegen:")
-    print('  <iframe src="http://<server>:8080/%s" style="width:100%%;height:900px;border:0;"></iframe>' % args.html)
+    if sys.stdout.isatty():
+        # Im Container (zyklischer Scan) nicht bei jedem Lauf ins Log spammen
+        print("\nIn WikiJS einbinden (siehe README.md): Datei z. B. per 'python3 -m http.server 8080' hosten")
+        print("und in einer WikiJS-Markdown-Seite (WikiJS 3.x hat keinen HTML-Editor mehr) einfuegen:")
+        print('  <iframe src="http://<server>:8080/%s" style="width:100%%;height:900px;border:0;"></iframe>' % args.html)
 
 
 if __name__ == "__main__":
