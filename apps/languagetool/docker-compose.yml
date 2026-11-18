@@ -1,4 +1,19 @@
 services:
+  # Web-Oberflaeche (Main-Service): nginx serviert die statische UI und proxied /v2/ an den LT-Server.
+  # Dateien direkt aus dem App-Repo mounten (wie netmap), damit Updates auch bei bestehender
+  # Installation in-place greifen (Runtipi kopiert data/ nur bei der Erstinstallation).
+  languagetool-web:
+    image: nginx:1.28-alpine
+    container_name: languagetool-web
+    restart: unless-stopped
+    depends_on:
+      - languagetool
+    volumes:
+      - ${APP_DATA_DIR}/../../../apps/languagetool/web:/usr/share/nginx/html:ro
+      - ${APP_DATA_DIR}/../../../apps/languagetool/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    x-runtipi:
+      is_main: true
+      internal_port: 80
   languagetool:
     image: erikvl87/languagetool:6.8
     container_name: languagetool
@@ -8,8 +23,5 @@ services:
       # Java-Heap aus den App-Einstellungen in Runtipi (Defaults im Image: 256m/512m)
       Java_Xms: ${Java_Xms}
       Java_Xmx: ${Java_Xmx}
-    x-runtipi:
-      is_main: true
-      internal_port: 8010
 x-runtipi:
   schema_version: 2

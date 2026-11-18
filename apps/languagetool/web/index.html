@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LanguageTool – Texte prüfen</title>
+<style>
+  :root { --lt-green: #78b833; --lt-dark: #2f3b2f; --err: #d32f2f; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f4f6f4; color: var(--lt-dark); }
+  header { background: var(--lt-green); color: #fff; padding: 14px 24px; display: flex; align-items: baseline; gap: 12px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header span { font-size: 13px; opacity: .9; }
+  main { max-width: 1000px; margin: 20px auto; padding: 0 16px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  select, button { font-size: 14px; padding: 8px 12px; border-radius: 6px; border: 1px solid #c8d2c8; background: #fff; }
+  button { background: var(--lt-green); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .5; cursor: wait; }
+  label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  textarea { width: 100%; min-height: 180px; font-size: 15px; padding: 12px; border: 1px solid #c8d2c8; border-radius: 8px; resize: vertical; }
+  #marked { background: #fff; border: 1px solid #c8d2c8; border-radius: 8px; padding: 12px; min-height: 120px; font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-top: 12px; }
+  .lt-err { text-decoration: underline wavy var(--err) 2px; text-underline-offset: 3px; cursor: pointer; background: rgba(211,47,47,.08); }
+  .lt-err.active { background: rgba(211,47,47,.25); }
+  #detail { background: #fff; border: 1px solid #c8d2c8; border-left: 4px solid var(--err); border-radius: 8px; padding: 12px 14px; margin-top: 12px; display: none; }
+  #detail h3 { margin: 0 0 6px; font-size: 15px; }
+  #detail .repl { margin: 6px 8px 0 0; background: #eef4ea; color: var(--lt-dark); border: 1px solid #c8d2c8; font-weight: 500; }
+  #detail .meta { font-size: 12px; color: #667; margin-top: 8px; }
+  #status { font-size: 13px; color: #667; margin-top: 10px; min-height: 18px; }
+  h2 { font-size: 16px; margin: 18px 0 8px; }
+</style>
+</head>
+<body>
+<header><h1>LanguageTool</h1><span>Rechtschreib- &amp; Grammatikprüfung (lokal, Version 6.8)</span></header>
+<main>
+  <div class="toolbar">
+    <label>Sprache <select id="lang"></select></label>
+    <label><input type="checkbox" id="picky"> Picky-Modus (mehr Stil-Hinweise)</label>
+    <button id="checkBtn">Text prüfen</button>
+  </div>
+  <textarea id="text" placeholder="Text hier eingeben …">Das ist ein Testt mit einem Fehler.</textarea>
+  <div id="status"></div>
+  <h2>Ergebnis</h2>
+  <div id="marked"></div>
+  <div id="detail"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let matches = [];
+let currentText = '';
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function loadLanguages() {
+  try {
+    const r = await fetch('/v2/languages');
+    const langs = await r.json();
+    langs.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    const sel = $('lang');
+    const auto = document.createElement('option');
+    auto.value = 'auto'; auto.textContent = 'Automatisch erkennen';
+    sel.appendChild(auto);
+    for (const l of langs) {
+      const o = document.createElement('option');
+      o.value = l.code; o.textContent = l.name + ' (' + l.code + ')';
+      if (l.code.startsWith('de')) o.selected = true;
+      sel.appendChild(o);
+    }
+  } catch (e) { $('status').textContent = 'Sprachen konnten nicht geladen werden: ' + e; }
+}
+
+function renderMarked() {
+  const sorted = [...matches].sort((a, b) => a.offset - b.offset);
+  let html = '', pos = 0;
+  sorted.forEach((m, i) => {
+    if (m.offset < pos) return;
+    html += esc(currentText.slice(pos, m.offset));
+    html += '<span class="lt-err" data-idx="' + i + '">' + esc(currentText.substr(m.offset, m.length)) + '</span>';
+    pos = m.offset + m.length;
+  });
+  html += esc(currentText.slice(pos));
+  $('marked').innerHTML = html || '<span style="color:#889">Noch keine Prüfung durchgeführt.</span>';
+  document.querySelectorAll('.lt-err').forEach(el =>
+    el.addEventListener('click', () => showDetail(+el.dataset.idx, el)));
+}
+
+function showDetail(i, el) {
+  const m = matches.find((x, idx) => [...matches].sort((a,b)=>a.offset-b.offset).indexOf(x) === i);
+  const sorted = [...matches].sort((a, b) => a.offset - b.offset);
+  const match = sorted[i];
+  document.querySelectorAll('.lt-err').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const d = $('detail');
+  d.style.display = 'block';
+  let html = '<h3>' + esc(match.message) + '</h3>';
+  if (match.replacements && match.replacements.length) {
+    html += '<div>Vorschläge: ';
+    match.replacements.slice(0, 8).forEach((r, ri) => {
+      html += '<button class="repl" data-ri="' + ri + '">' + esc(r.value) + '</button>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="meta">Position ' + match.offset + '–' + (match.offset + match.length) +
+          (match.rule && match.rule.id ? ' · Regel: ' + esc(match.rule.id) : '') + '</div>';
+  d.innerHTML = html;
+  d.querySelectorAll('.repl').forEach(btn => btn.addEventListener('click', () => {
+    const repl = match.replacements[+btn.dataset.ri].value;
+    $('text').value = currentText.slice(0, match.offset) + repl + currentText.slice(match.offset + match.length);
+    d.style.display = 'none';
+  }));
+}
+
+async function check() {
+  const text = $('text').value;
+  if (!text.trim()) return;
+  currentText = text;
+  $('checkBtn').disabled = true;
+  $('status').textContent = 'Prüfung läuft …';
+  $('detail').style.display = 'none';
+  try {
+    const body = new URLSearchParams();
+    body.set('text', text);
+    body.set('language', $('lang').value);
+    if ($('picky').checked) body.set('level', 'picky');
+    const r = await fetch('/v2/check', { method: 'POST', body });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error ? data.error.message : ('HTTP ' + r.status));
+    matches = data.matches || [];
+    renderMarked();
+    $('status').textContent = matches.length
+      ? matches.length + ' Hinweis(e) gefunden.'
+      : 'Keine Fehler gefunden. ✔';
+  } catch (e) {
+    $('status').textContent = 'Fehler bei der Prüfung: ' + e.message;
+    matches = []; renderMarked();
+  } finally {
+    $('checkBtn').disabled = false;
+  }
+}
+
+$('checkBtn').addEventListener('click', check);
+$('text').addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') check(); });
+loadLanguages();
+renderMarked();
+</script>
+</body>
+</html>
