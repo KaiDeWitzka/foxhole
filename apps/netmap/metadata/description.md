@@ -47,12 +47,15 @@ hervor; Panel und Tabelle zeigen „Verbunden mit“). Automatisch über die App
 - **FRITZ!Box per TR-064:** `NETZ_FRITZ_URL`, `NETZ_FRITZ_USER`, `NETZ_FRITZ_PASS` in den
   App-Einstellungen (TR-064 in der Box aktivieren: *Heimnetz → Netzwerk → Netzwerkeinstellungen
   → „Anwendungen im Heimnetz erlauben (TR-064)“*). WLAN-Clients direkt an der Box werden dem
-  Gateway zugeordnet.
+  Gateway zugeordnet. **Fallback:** schlägt die Abfrage per `https://` fehl (z. B. Anmeldung
+  nur per HTTP erlaubt), probiert der Scanner automatisch `http://` (gilt für Hosts- und WAN-Abfrage).
 - **FRITZ!Repeater-IPs** (kommagetrennte IPs aus der Mesh-Übersicht) und **SNMP-Switch-IPs**
   pflegst du im Menü **„Einstellungen“** der Webseite (s. u.) – nicht mehr in den
   Runtipi-App-Einstellungen. WLAN-Clients werden so dem jeweiligen Repeater zugeordnet.
 - **SNMPv2c (CAM-Tabelle):** `NETZ_SNMP_COMMUNITY` (Standard: `public`) in den App-Einstellungen,
   Switch-IPs optional im Menü „Einstellungen“ (leer = alle als Switch erkannten Geräte).
+  Ob SNMP überhaupt abgefragt wird, stellst du in den **Runtipi-App-Einstellungen** ein
+  („SNMP-Scan aktivieren“, `NETZ_SNMP_ENABLED`, default an). Aus = Scan nur per Ping/TCP/ARP/TR-064.
   Liest die MAC→Port-Tabelle (`dot1dTpFdbTable`) — funktioniert nur bei SNMP-fähigen
   verwalteten Switchen (z. B. TL-SG3xxx, Netgear GSxxxE, MikroTik, UniFi), **nicht** beim
   TL-SG108E (kein SNMP in irgendeiner Firmware).
@@ -68,6 +71,22 @@ Clients, Repeater-IPs, SNMP-Switch-IPs und Exporte. Wird nach `${APP_DATA_DIR}/d
 (`topology.json` + `settings.json`) gespeichert und beim nächsten Scan wirksam — dafür ist **keine
 Datenbank** nötig, die Dateien unter `data/` reichen (Runtipi sichert `APP_DATA_DIR` mit den
 App-Backups). Ergebnis in der Karte: „Switch <IP> Port <N> (SNMP)“ bzw. „manuell zugeordnet“.
+
+## Einstellungen in der Webseite (ab v1.9.3)
+
+Im Menü **„Einstellungen“** der Karte (oben rechts):
+
+- **Switch-IPs**: kommagetrennte IPs deiner Switche (z. B. `192.168.178.2,192.168.178.3`) – diese
+  Geräte werden in der Karte immer als **Switch** angezeigt (unabhängig von der automatischen
+  Erkennung und unabhängig von den SNMP-Switch-IPs). Leer = automatische Erkennung.
+- **Export-Format + „Exportieren“-Button**: Auswahlfeld (PDF / CSV / Markdown / JSON / alle / nur
+  scan.json+HTML) als Default für jeden Scan **und** ein Button, der den **letzten Scan sofort**
+  im gewählten Format exportiert (`POST /api/export`) – die Dateien landen in `data/web/` und
+  erscheinen oben rechts als Download-Buttons.
+- **LAN-Parent**: das Gerät, an dem **kabelgebundene (LAN) Geräte** in der Karte hängen, wenn
+  weder TR-064 noch SNMP noch das manuelle Mapping etwas anderes sagen (Fallback für „Verbunden
+  mit“). Leer = automatisch das Gateway (die FRITZ!Box). Beispiel: hängen alle Kabel am Switch
+  `192.168.178.2`, trage hier `192.168.178.2` ein.
 
 ## In WikiJS einbetten
 
