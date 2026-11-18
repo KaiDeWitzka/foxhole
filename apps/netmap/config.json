@@ -9,9 +9,9 @@
     "network",
     "utilities"
   ],
-  "description": "Scannt das lokale Netzwerk (Router/Gateway, Switche, Server/NAS, Clients, Drucker, Smart-Home/IoT) und erzeugt eine interaktive HTML-Netzwerkkarte mit IP-Adresse, MAC-Adresse, Hostname, Hersteller (OUI) und offenen Ports je Geraet. Die Karte wird zyklisch neu gescannt und laesst sich z. B. per iframe in WikiJS einbetten. Der Scanner laeuft im Host-Netzwerkmodus, damit MAC-Adressen per ARP aufgeloest werden. Unmanaged Switche/Hubs ohne eigene IP sind nicht sichtbar.",
+  "description": "Scannt das lokale Netzwerk (Router/Gateway, Switche, Server/NAS, Clients, Drucker, Smart-Home/IoT - auch mehrere Subnetze/VLANs) und erzeugt eine interaktive HTML-Netzwerkkarte mit IP, MAC, Hostname, Hersteller (OUI) und offenen Ports je Geraet. Inklusive Alarm bei neuem/unbekanntem Geraet (Webhook/Gotify/Ntfy), Langzeit-Historie online/offline pro Geraet, Prometheus-Metriken (/metrics) + optional InfluxDB2-Push fuer Grafana, REST-API (/api/devices, /api/history, /api/health) und hellem/dunklem Theme. Die Karte wird zyklisch neu gescannt und laesst sich z. B. per iframe in WikiJS einbetten. Der Scanner laeuft im Host-Netzwerkmodus, damit MAC-Adressen per ARP aufgeloest werden. Unmanaged Switche/Hubs ohne eigene IP sind nicht sichtbar.",
   "tipi_version": 2,
-  "version": "1.9.3",
+  "version": "1.10.0",
   "source": "https://github.com/KaiDeWitzka/netmap",
   "website": "https://github.com/KaiDeWitzka/netmap",
   "exposable": true,
@@ -20,7 +20,7 @@
     "amd64"
   ],
   "created_at": 1794649747509,
-  "updated_at": 1795000000000,
+  "updated_at": 1795019246239,
   "dynamic_config": true,
   "min_tipi_version": "4.7.0",
   "form_fields": [
@@ -79,6 +79,110 @@
       "required": false,
       "default": true,
       "env_variable": "NETZ_SNMP_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Subnetze / VLANs (kommagetrennt)",
+      "hint": "z. B. 192.168.178.0/24,10.0.10.0/24 - alle werden zu einem Scan zusammengefasst; ueberschreibt 'Zu scannendes Subnetz'; leer = lokales Subnetz automatisch",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_SUBNETS"
+    },
+    {
+      "type": "text",
+      "label": "Webhook: Alarm bei neuem Geraet (POST JSON)",
+      "hint": "z. B. Discord/Slack-Webhook oder Shoutrrr-URL; leer = kein Alarm. Payload: {event:'new_devices', devices:[...]}; alternativ auch im Web-Menue 'Einstellungen'",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_WEBHOOK"
+    },
+    {
+      "type": "text",
+      "label": "Gotify-Server-URL (Alarm bei neuem Geraet)",
+      "hint": "z. B. https://gotify.example.com; leer = aus",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_GOTIFY"
+    },
+    {
+      "type": "password",
+      "label": "Gotify App-Token",
+      "hint": "App-Token des Gotify-Servers",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_GOTIFY_TOKEN"
+    },
+    {
+      "type": "text",
+      "label": "Ntfy-Topic-URL (Alarm bei neuem Geraet)",
+      "hint": "z. B. https://ntfy.sh/mein-netzwerk; leer = aus",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_NTFY"
+    },
+    {
+      "type": "password",
+      "label": "Ntfy Access-Token (optional)",
+      "hint": "tk_... - nur noetig bei geschuetztem Topic",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_NTFY_TOKEN"
+    },
+    {
+      "type": "number",
+      "label": "Historie behalten (Stunden)",
+      "hint": "Online/Offline-Verlauf pro Geraet (history.jsonl) wird nach dieser Zeit getrimmt; Standard 720 = 30 Tage",
+      "required": false,
+      "default": 720,
+      "env_variable": "NETZ_HISTORY_HOURS"
+    },
+    {
+      "type": "boolean",
+      "label": "InfluxDB2-Push aktivieren (Grafana)",
+      "hint": "Wenn aktiv, pusht der Scanner nach jedem Scan Metriken (netmap_scan, netmap_device) an die InfluxDB2-URL unten. Prometheus-Alternative: GET /metrics der Web-App (Port 8399) scrapen.",
+      "required": false,
+      "default": false,
+      "env_variable": "NETZ_INFLUX_ENABLE"
+    },
+    {
+      "type": "text",
+      "label": "InfluxDB2-URL",
+      "hint": "z. B. http://influxdb:8086 (nur bei aktiviertem InfluxDB2-Push)",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_INFLUX_ADDR"
+    },
+    {
+      "type": "text",
+      "label": "InfluxDB2-Bucket",
+      "hint": "z. B. netmap",
+      "required": false,
+      "default": "netmap",
+      "env_variable": "NETZ_INFLUX_BUCKET"
+    },
+    {
+      "type": "text",
+      "label": "InfluxDB2-Organisation",
+      "hint": "z. B. home",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_INFLUX_ORG"
+    },
+    {
+      "type": "password",
+      "label": "InfluxDB2-Token (API-Token)",
+      "hint": "All-Access- oder Bucket-Token mit Schreibrecht auf den Bucket",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_INFLUX_TOKEN"
+    },
+    {
+      "type": "text",
+      "label": "Theme der Karte",
+      "hint": "dark (Standard) oder light; alternativ ?theme=light an die Karten-URL haengen oder im Web-Menue 'Einstellungen' umstellen",
+      "required": false,
+      "default": "dark",
+      "env_variable": "NETZ_THEME"
     }
   ]
 }
