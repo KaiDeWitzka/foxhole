@@ -107,7 +107,8 @@ eine eigene Domain) und kannst sie bedenkenlos in HTTPS-WikiJS einbetten.
 - **Docker-172.x-Geraete in der Karte:** ab v1.7.1 werden ARP-Eintraege anderer Interfaces
   (z. B. Docker-Bridges) herausgefiltert - nur das gescannte Subnetz landet in der Karte.
 - Nach einem App-Update ist **kein** Neuinstallieren nötig (Skripte werden beim Start aus `apps/.../netmap/app` aktualisiert, Daten bleiben in `app-data` erhalten).
-- **Scanner startet nicht / `entrypoint.sh` fehlt:** tritt auf, wenn das Skript-Mount ins Leere zeigt (z. B. nach manuellem Compose-Eingriff). Fix: App normal über den Store aktualisieren und neu starten – v1.9.1 mountet wieder `${APP_DATA_DIR}/data/app` plus das `apps/`-Verzeichnis.
+- **Scanner startet nicht / `can't open /opt/netzwerkkarte/entrypoint.sh` (Crashloop):** tritt auf, wenn `data/app` nie nach `app-data` kopiert wurde (Runtipi kopiert `data/` nur bei der Erstinstallation, nicht beim Update). Fix ab **v1.9.2**: Der Entrypoint bootstrapped sich selbst und kopiert die Skripte aus dem installierten App-Ordner (`apps/<store>/netmap/app`, Mount `/runtipi-apps`). Einfach App-Update in Runtipi durchführen und neu starten – kein Neuinstallieren nötig.
+- **404 auf `/`:** ab v1.9.2 leitet der Webserver `/` per 302 auf `/netzwerkkarte.html` um.
 
 ## Quelle
 

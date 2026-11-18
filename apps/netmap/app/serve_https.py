@@ -63,6 +63,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path in ("/", "/index.html"):
+            # Root auf die Karte umleiten (sonst 404, solange /data/web gefuellt wird)
+            self.send_response(302)
+            self.send_header("Location", "/netzwerkkarte.html")
+            self.end_headers()
+            return
         if self.path == "/api/config":
             topo = ""
             p = os.path.join(CONFIG_DIR, "topology.json")
