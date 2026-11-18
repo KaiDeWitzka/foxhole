@@ -72,10 +72,12 @@ Clients, Repeater-IPs, SNMP-Switch-IPs und Exporte. Wird nach `${APP_DATA_DIR}/d
 Datenbank** nötig, die Dateien unter `data/` reichen (Runtipi sichert `APP_DATA_DIR` mit den
 App-Backups). Ergebnis in der Karte: „Switch <IP> Port <N> (SNMP)“ bzw. „manuell zugeordnet“.
 
-## Einstellungen in der Webseite (ab v1.9.3)
+## Einstellungen in der Webseite (ab v1.10.0)
 
 Im Menü **„Einstellungen“** der Karte (oben rechts):
 
+- **Manuelles Topologie-Mapping** (`topology.json`), **LAN-Parent**, **FRITZ!Repeater-IPs**,
+  **SNMP-Switch-IPs** und **Exporte** wie bisher (siehe Abschnitte oben).
 - **Switch-IPs**: kommagetrennte IPs deiner Switche (z. B. `192.168.178.2,192.168.178.3`) – diese
   Geräte werden in der Karte immer als **Switch** angezeigt (unabhängig von der automatischen
   Erkennung und unabhängig von den SNMP-Switch-IPs). Leer = automatische Erkennung.
@@ -83,10 +85,14 @@ Im Menü **„Einstellungen“** der Karte (oben rechts):
   scan.json+HTML) als Default für jeden Scan **und** ein Button, der den **letzten Scan sofort**
   im gewählten Format exportiert (`POST /api/export`) – die Dateien landen in `data/web/` und
   erscheinen oben rechts als Download-Buttons.
-- **LAN-Parent**: das Gerät, an dem **kabelgebundene (LAN) Geräte** in der Karte hängen, wenn
-  weder TR-064 noch SNMP noch das manuelle Mapping etwas anderes sagen (Fallback für „Verbunden
-  mit“). Leer = automatisch das Gateway (die FRITZ!Box). Beispiel: hängen alle Kabel am Switch
-  `192.168.178.2`, trage hier `192.168.178.2` ein.
+- **Subnetze / VLANs scannen**: kommagetrennt (z. B. `192.168.178.0/24,10.0.10.0/24`); leer = lokales
+  Subnetz. Wirkt ab dem nächsten Scan (gleiches Feld gibt es auch in den Runtipi-App-Einstellungen als `NETZ_SUBNETS`).
+- **Alarm bei neuem Gerät**: Webhook-URL (POST JSON), Gotify-URL + Token, Ntfy-Topic-URL + Token
+  (auch als `NETZ_NOTIFY_*` in den Runtipi-App-Einstellungen).
+- **Historie behalten (Stunden)**: Online/Offline-Verlauf (`history.jsonl`) wird nach dieser Zeit
+  getrimmt (Standard 720 = 30 Tage).
+- **Theme**: Hell/Dunkel – wird sofort umgeschaltet und in `settings.json` gespeichert
+  (oder `NETZ_THEME` in den App-Einstellungen bzw. `?theme=light` an die URL).
 
 ## In WikiJS einbetten
 
@@ -128,6 +134,32 @@ eine eigene Domain) und kannst sie bedenkenlos in HTTPS-WikiJS einbetten.
 - Nach einem App-Update ist **kein** Neuinstallieren nötig (Skripte werden beim Start aus `apps/.../netmap/app` aktualisiert, Daten bleiben in `app-data` erhalten).
 - **Scanner startet nicht / `can't open /opt/netzwerkkarte/entrypoint.sh` (Crashloop):** tritt auf, wenn `data/app` nie nach `app-data` kopiert wurde (Runtipi kopiert `data/` nur bei der Erstinstallation, nicht beim Update). Fix ab **v1.9.2**: Der Entrypoint bootstrapped sich selbst und kopiert die Skripte aus dem installierten App-Ordner (`apps/<store>/netmap/app`, Mount `/runtipi-apps`). Einfach App-Update in Runtipi durchführen und neu starten – kein Neuinstallieren nötig.
 - **404 auf `/`:** ab v1.9.2 leitet der Webserver `/` per 302 auf `/netzwerkkarte.html` um.
+
+## Neu in v1.10.0 (WatchYourLAN-Features)
+
+- **Alarm bei neuem/unbekanntem Gerät** („jemand ist in meinem WLAN“): Nach jedem Scan wird
+  `seen.json` mit dem Scan abgeglichen. Neue Geräte werden in der Karte/Tabelle mit einem
+  🆕-Badge markiert und per **Webhook** (POST JSON), **Gotify** oder **Ntfy** gemeldet.
+  Konfiguriert in den Runtipi-App-Einstellungen (`NETZ_NOTIFY_WEBHOOK`, `NETZ_NOTIFY_GOTIFY` +
+  `NETZ_NOTIFY_GOTIFY_TOKEN`, `NETZ_NOTIFY_NTFY` + `NETZ_NOTIFY_NTFY_TOKEN`) oder im Web-Menü
+  „Einstellungen“. Webhook-Payload: `{"event":"new_devices","devices":[{ip,mac,hostname,vendor,category,ports}],...}`.
+- **Langzeit-Historie online/offline pro Gerät**: `history.jsonl` in `data/web/` (eine JSON-Zeile pro
+  Scan, alle bekannten Geräte mit `online: true/false`, Trim nach `NETZ_HISTORY_HOURS`, Standard 720 h).
+  Dazu `first_seen`/`last_seen` pro Gerät in `scan.json`, im Klick-Panel („Erstmals gesehen“ /
+  „Zuletzt online“) und als Tabellenspalte „Zuletzt online“.
+- **REST-API & Metriken für Grafana**: der Webserver auf Port 8399 liefert zusätzlich
+  `GET /api/devices` (alle Geräte aus scan.json), `GET /api/history?limit=N` (Online/Offline-Verlauf),
+  `GET /api/health`, `GET /api/config` und **`GET /metrics`** (Prometheus-Textformat:
+  `netmap_devices_total`, `netmap_devices{category=...}`, `netmap_device_online{ip,...}`,
+  `netmap_scan_timestamp_seconds`, `netmap_new_devices_total`). Prometheus scrapt
+  `http://<runtipi-host>:8399/metrics`. Optional pusht der Scanner außerdem nach jedem Scan an
+  **InfluxDB2** (`NETZ_INFLUX_ENABLE` + `NETZ_INFLUX_ADDR/BUCKET/ORG/TOKEN`) – in Grafana z. B.
+  Online-Zeitanteil pro Gerät.
+- **Multi-Subnetz / VLAN-Scan**: `NETZ_SUBNETS` in den App-Einstellungen (kommagetrennt,
+  z. B. `192.168.178.0/24,10.0.10.0/24`) – alle Subnetze landen in **einer** Karte
+  (`subnets` in `scan.json`, Anzeige in der Kopfzeile).
+- **Theme hell/dunkel**: `NETZ_THEME` (`dark`/`light`), Web-Menü „Einstellungen“ oder
+  `?theme=light` an die Karten-URL.
 
 ## Quelle
 

@@ -46,6 +46,20 @@ services:
       NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
       NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-}
       NETZ_SNMP_ENABLED: ${NETZ_SNMP_ENABLED:-true}
+      # v1.10.0: Multi-Subnetz, Alarm bei neuem Geraet, Historie, InfluxDB2, Theme
+      NETZ_SUBNETS: ${NETZ_SUBNETS:-}
+      NETZ_NOTIFY_WEBHOOK: ${NETZ_NOTIFY_WEBHOOK:-}
+      NETZ_NOTIFY_GOTIFY: ${NETZ_NOTIFY_GOTIFY:-}
+      NETZ_NOTIFY_GOTIFY_TOKEN: ${NETZ_NOTIFY_GOTIFY_TOKEN:-}
+      NETZ_NOTIFY_NTFY: ${NETZ_NOTIFY_NTFY:-}
+      NETZ_NOTIFY_NTFY_TOKEN: ${NETZ_NOTIFY_NTFY_TOKEN:-}
+      NETZ_HISTORY_HOURS: ${NETZ_HISTORY_HOURS:-720}
+      NETZ_INFLUX_ENABLE: ${NETZ_INFLUX_ENABLE:-false}
+      NETZ_INFLUX_ADDR: ${NETZ_INFLUX_ADDR:-}
+      NETZ_INFLUX_BUCKET: ${NETZ_INFLUX_BUCKET:-}
+      NETZ_INFLUX_ORG: ${NETZ_INFLUX_ORG:-}
+      NETZ_INFLUX_TOKEN: ${NETZ_INFLUX_TOKEN:-}
+      NETZ_THEME: ${NETZ_THEME:-dark}
     volumes:
       # Skripte rw, damit entrypoint.sh bei App-Update frische Versionen aus /runtipi-apps kopieren kann
       # (In-Place-Update). Laufzeitdaten (scan.json, web/, certs/, config/) in ${APP_DATA_DIR}/data bleiben erhalten.
