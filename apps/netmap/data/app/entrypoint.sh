@@ -10,6 +10,11 @@ SUBNET_ARG=""
 if [ -n "${NETZ_SUBNET:-}" ]; then
   SUBNET_ARG="--subnet ${NETZ_SUBNET}"
 fi
+# v1.10.0: mehrere Subnetze/VLANs (NETZ_SUBNETS gewinnt gegen NETZ_SUBNET, siehe netzwerkkarte.py)
+SUBNETS_ARG=""
+if [ -n "${NETZ_SUBNETS:-}" ]; then
+  SUBNETS_ARG="--subnets ${NETZ_SUBNETS}"
+fi
 # In-Place-Update: frische Skripte aus dem installierten App-Ordner uebernehmen.
 # Runtipi kopiert data/ nur bei der Erstinstallation nach app-data - /runtipi-apps
 # ist das apps/-Verzeichnis der Runtipi-Installation (Mount siehe docker-compose.yml).
@@ -26,10 +31,10 @@ if [ -n "${APP_DATA_DIR:-}" ] && [ -d /runtipi-apps ]; then
     done
   fi
 fi
-echo "Starte Netzwerkkarte-Scanner (Intervall: ${INTERVAL}s, Subnetz: ${NETZ_SUBNET:-auto})"
+echo "Starte Netzwerkkarte-Scanner (Intervall: ${INTERVAL}s, Subnetz: ${NETZ_SUBNETS:-${NETZ_SUBNET:-auto}})"
 while true; do
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scanne Netzwerk ..."
   # shellcheck disable=SC2086
-  python3 /opt/netzwerkkarte/netzwerkkarte.py ${SUBNET_ARG} --out-dir "$OUT" || echo "Scan fehlgeschlagen - naechster Versuch in ${INTERVAL}s"
+  python3 /opt/netzwerkkarte/netzwerkkarte.py ${SUBNETS_ARG} ${SUBNET_ARG} --out-dir "$OUT" || echo "Scan fehlgeschlagen - naechster Versuch in ${INTERVAL}s"
   sleep "$INTERVAL"
 done
