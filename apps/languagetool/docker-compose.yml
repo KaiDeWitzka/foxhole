@@ -1,0 +1,15 @@
+services:
+  languagetool:
+    image: erikvl87/languagetool:6.8
+    container_name: languagetool
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      # Java-Heap aus den App-Einstellungen in Runtipi (Defaults im Image: 256m/512m)
+      Java_Xms: ${Java_Xms}
+      Java_Xmx: ${Java_Xmx}
+    x-runtipi:
+      is_main: true
+      internal_port: 8010
+x-runtipi:
+  schema_version: 2
