@@ -15,13 +15,14 @@ services:
     # Runtipi/Traefik routet HTTP dorthin; TLS im Container => 502 Bad Gateway.
     # HTTPS am Edge terminieren (Runtipi "Local SSL certificates" / App mit TLS exponieren / NPM).
     # Sofort starten (kein Warten auf die erste Scan-Datei => kein 502 in der Startphase).
+    # $$ => erst zur Laufzeit im Container auswerten (compose-interpoliert sonst leer).
     command:
       - /bin/sh
       - -c
       - >-
-        STORE=$(basename "$(dirname "$APP_DATA_DIR")"); APP=$(basename "$APP_DATA_DIR");
-        FRESH="/runtipi-apps/$STORE/$APP/app";
-        if [ -f "$FRESH/serve_https.py" ]; then exec python3 "$FRESH/serve_https.py";
+        STORE=$$(basename "$$(dirname "${APP_DATA_DIR}")"); APPNAME=$$(basename "${APP_DATA_DIR}");
+        FRESH="/runtipi-apps/$$STORE/$$APPNAME/app";
+        if [ -f "$$FRESH/serve_https.py" ]; then exec python3 "$$FRESH/serve_https.py";
         elif [ -f /opt/netzwerkkarte/serve_https.py ]; then exec python3 /opt/netzwerkkarte/serve_https.py;
         else exec python3 -m http.server 8080 --directory /data/web; fi
     x-runtipi:
@@ -52,6 +53,21 @@ services:
       - ${APP_DATA_DIR}/data:/data
     entrypoint:
       - /bin/sh
-      - /opt/netzwerkkarte/entrypoint.sh
+      - -c
+      - |
+        # Bootstrap (Self-Healing): falls data/app nie kopiert wurde (z. B. App-Update ohne
+        # Erstinstallation), Skripte aus dem installierten App-Ordner uebernehmen -
+        # sonst Crashloop "can't open /opt/netzwerkkarte/entrypoint.sh".
+        if [ ! -f /opt/netzwerkkarte/entrypoint.sh ] && [ -d /runtipi-apps ]; then
+          STORE=$$(basename "$$(dirname "${APP_DATA_DIR}")")
+          APPNAME=$$(basename "${APP_DATA_DIR}")
+          FRESH="/runtipi-apps/$$STORE/$$APPNAME/app"
+          if [ -f "$$FRESH/entrypoint.sh" ]; then
+            mkdir -p /opt/netzwerkkarte
+            cp "$$FRESH/"*.py "$$FRESH/"*.sh /opt/netzwerkkarte/ 2>/dev/null
+            echo "Bootstrap: Skripte aus $$FRESH uebernommen"
+          fi
+        fi
+        exec /bin/sh /opt/netzwerkkarte/entrypoint.sh
 x-runtipi:
   schema_version: 2
