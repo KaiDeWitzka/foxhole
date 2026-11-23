@@ -1,0 +1,98 @@
+{
+  "name": "fox_netmap",
+  "id": "netmap",
+  "available": true,
+  "short_desc": "Interaktive Netzwerkkarte deines Heimnetzes: Scan, Karte, Tabelle, Alarme, Exporte",
+  "author": "KaiDeWitzka",
+  "port": 8399,
+  "categories": [
+    "network"
+  ],
+  "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
+  "tipi_version": 2,
+  "version": "1.6.8",
+  "source": "https://github.com/KaiDeWitzka/fox_netmap",
+  "website": "https://github.com/KaiDeWitzka/fox_netmap",
+  "exposable": true,
+  "supported_architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "created_at": 1795438196971,
+  "updated_at": 1795438196971,
+  "dynamic_config": true,
+  "min_tipi_version": "4.7.0",
+  "$schema": "../app-info-schema.json",
+  "form_fields": [
+    {
+      "type": "text",
+      "label": "Netzwerke (CIDR, kommagetrennt)",
+      "hint": "z. B. 192.168.178.0/24, fdf1:3afe:ed39::/64 — leer lassen = automatisch erkennen",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_SUBNETS"
+    },
+    {
+      "type": "number",
+      "label": "Scan-Intervall (Sekunden)",
+      "default": 900,
+      "min": 60,
+      "required": false,
+      "env_variable": "NETZ_SCAN_INTERVAL"
+    },
+    {
+      "type": "url",
+      "label": "FRITZ!Box URL",
+      "hint": "z. B. http://fritz.box — TR-064: Geraete, VPN, WAN-IP",
+      "required": false,
+      "env_variable": "NETZ_FRITZ_URL"
+    },
+    {
+      "type": "text",
+      "label": "FRITZ!Box Benutzername",
+      "required": false,
+      "env_variable": "NETZ_FRITZ_USER"
+    },
+    {
+      "type": "password",
+      "label": "FRITZ!Box Passwort",
+      "required": false,
+      "env_variable": "NETZ_FRITZ_PASS"
+    },
+    {
+      "type": "boolean",
+      "label": "SNMP aktivieren",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_SNMP_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "SNMP Community",
+      "default": "public",
+      "required": false,
+      "env_variable": "NETZ_SNMP_COMMUNITY"
+    },
+    {
+      "type": "boolean",
+      "label": "Login aktivieren",
+      "default": true,
+      "required": false,
+      "env_variable": "NETZ_AUTH_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Login-Benutzername",
+      "default": "admin",
+      "required": false,
+      "env_variable": "NETZ_AUTH_USER"
+    },
+    {
+      "type": "password",
+      "label": "Login-Passwort",
+      "hint": "leer lassen = erstmalig in den fox_netmap-Einstellungen setzen",
+      "required": false,
+      "env_variable": "NETZ_AUTH_PASS"
+    }
+  ]
+}

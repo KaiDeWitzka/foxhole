@@ -1,0 +1,68 @@
+# fox_netmap als RunTipi-App.
+# Zwei Dienste aus dem selben Image (ghcr.io/kaidewitzka/fox_netmap, per Digest gepinnt):
+#   - netmap          Web-UI (Port aus den App-Einstellungen, intern 8399)
+#   - netmap-scanner  zyklischer Scanner, braucht host-Netzwerk + NET_RAW (ping), um das LAN zu sehen
+# Härtung wie upstream (fox_netmap >= v1.5.0): read_only, kein no-new-privileges nur am Web-Dienst;
+# der Entrypoint im Image startet beide als UID 10001 und räumt alle Capabilities bis auf NET_RAW (Scanner) ab.
+x-netz-env: &netz-env
+  NETZ_DATA_DIR: /data
+  NETZ_SUBNETS: ${NETZ_SUBNETS:-}
+  NETZ_SCAN_INTERVAL: ${NETZ_SCAN_INTERVAL:-900}
+  NETZ_SCAN_TIMEOUT: ${NETZ_SCAN_TIMEOUT:-1}
+  NETZ_PORT_TOP: ${NETZ_PORT_TOP:-1000}
+  NETZ_PORTS: ${NETZ_PORTS:-}
+  NETZ_FRITZ_URL: ${NETZ_FRITZ_URL:-}
+  NETZ_FRITZ_URLS: ${NETZ_FRITZ_URLS:-}
+  NETZ_FRITZ_USER: ${NETZ_FRITZ_USER:-}
+  NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
+  NETZ_SNMP_ENABLED: ${NETZ_SNMP_ENABLED:-false}
+  NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-public}
+  NETZ_SNMP_SWITCHES: ${NETZ_SNMP_SWITCHES:-}
+  NETZ_AUTH_ENABLED: ${NETZ_AUTH_ENABLED:-true}
+  NETZ_AUTH_USER: ${NETZ_AUTH_USER:-admin}
+  NETZ_AUTH_PASS: ${NETZ_AUTH_PASS:-}
+  NETZ_NOTIFY_WEBHOOK: ${NETZ_NOTIFY_WEBHOOK:-}
+  NETZ_NOTIFY_GOTIFY: ${NETZ_NOTIFY_GOTIFY:-}
+  NETZ_NOTIFY_GOTIFY_TOKEN: ${NETZ_NOTIFY_GOTIFY_TOKEN:-}
+  NETZ_NOTIFY_NTFY: ${NETZ_NOTIFY_NTFY:-}
+  NETZ_NOTIFY_NTFY_TOKEN: ${NETZ_NOTIFY_NTFY_TOKEN:-}
+  NETZ_HISTORY_HOURS: ${NETZ_HISTORY_HOURS:-720}
+  NETZ_DEVICE_RETENTION_DAYS: ${NETZ_DEVICE_RETENTION_DAYS:-30}
+  NETZ_THEME: ${NETZ_THEME:-dark}
+  NETZ_AUTO_EXPORT: ${NETZ_AUTO_EXPORT:-false}
+  NETZ_EMBED_ANCESTORS: ${NETZ_EMBED_ANCESTORS:-*}
+  NETZ_COOKIE_SECURE: ${NETZ_COOKIE_SECURE:-auto}
+  NETZ_OUI_ONLINE_ENABLED: ${NETZ_OUI_ONLINE_ENABLED:-false}
+  TZ: ${TZ:-Europe/Berlin}
+
+services:
+  netmap:
+    image: ghcr.io/kaidewitzka/fox_netmap:1.6.8@sha256:86e19fca4da4c39f6e717da2f6fa7fead37c1c751cfb161673c9508b9dc7ccd5
+    restart: unless-stopped
+    environment: *netz-env
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    x-runtipi:
+      is_main: true
+      internal_port: 8399
+
+  netmap-scanner:
+    image: ghcr.io/kaidewitzka/fox_netmap:1.6.8@sha256:86e19fca4da4c39f6e717da2f6fa7fead37c1c751cfb161673c9508b9dc7ccd5
+    restart: unless-stopped
+    command: ["scanner"]
+    # Host-Netzwerk, damit ARP/NDP/TR-064/SNMP das echte LAN erreichen
+    network_mode: host
+    # NET_RAW fuer ping (ICMP) — im Image per setcap als Datei-Capability auf /bin/ping.
+    # Absichtlich KEIN no-new-privileges hier: das wuerde die Datei-Capability wirkungslos machen.
+    cap_add:
+      - NET_RAW
+    environment: *netz-env
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    read_only: true
+
+x-runtipi:
+  schema_version: 2
