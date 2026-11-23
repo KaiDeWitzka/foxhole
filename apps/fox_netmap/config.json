@@ -1,6 +1,6 @@
 {
   "name": "fox_netmap",
-  "id": "netmap",
+  "id": "fox_netmap",
   "available": true,
   "short_desc": "Interaktive Netzwerkkarte deines Heimnetzes: Scan, Karte, Tabelle, Alarme, Exporte",
   "author": "KaiDeWitzka",
