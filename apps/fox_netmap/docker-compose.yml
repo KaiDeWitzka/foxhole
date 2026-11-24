@@ -33,6 +33,8 @@ x-netz-env: &netz-env
   NETZ_EMBED_ANCESTORS: ${NETZ_EMBED_ANCESTORS:-*}
   NETZ_COOKIE_SECURE: ${NETZ_COOKIE_SECURE:-auto}
   NETZ_OUI_ONLINE_ENABLED: ${NETZ_OUI_ONLINE_ENABLED:-false}
+  # SQLite-Journal: auto = WAL mit Fallback auf delete (bei disk I/O error auf manchen Bind-Mounts)
+  NETZ_SQLITE_JOURNAL: ${NETZ_SQLITE_JOURNAL:-auto}
   TZ: ${TZ:-Europe/Berlin}
 
 services:

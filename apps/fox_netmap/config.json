@@ -93,6 +93,14 @@
       "hint": "leer lassen = erstmalig in den fox_netmap-Einstellungen setzen",
       "required": false,
       "env_variable": "NETZ_AUTH_PASS"
+    },
+    {
+      "type": "text",
+      "label": "SQLite Journal-Modus",
+      "hint": "auto = WAL mit automatischem Fallback; bei 'disk I/O error' (z. B. NAS/Docker Desktop): delete",
+      "default": "auto",
+      "required": false,
+      "env_variable": "NETZ_SQLITE_JOURNAL"
     }
   ]
 }
