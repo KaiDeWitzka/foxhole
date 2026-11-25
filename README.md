@@ -42,3 +42,9 @@ Hinweis fox_data2orga: Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit d
 Public-Schaltung des Projekt-Repos veröffentlicht. Bis dahin lokal bauen und taggen
 (`docker build -t ghcr.io/kaidewitzka/fox_data2orga:main .` im Projekt-Repo) und in
 Runtipi unter „Einstellungen → App anpassen" (user-config) das Image setzen.
+
+Hinweis fox_data2orga: Default-Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
+Public-Schaltung des Projekt-Repos auf GHCR veröffentlicht. Bis dahin auf dem Runtipi-Host
+lokal bauen (`git clone https://github.com/KaiDeWitzka/fox_data2orga.git && cd fox_data2orga && docker build -t ghcr.io/kaidewitzka/fox_data2orga:main .`)
+und beim Installieren im Formularfeld **„Docker-Image“** eintragen. Alternativ direkt im
+Projekt-Repo: `git pull && docker compose up -d --build`.
