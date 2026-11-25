@@ -34,14 +34,6 @@ For detailed instructions on creating your own app store, please refer to the of
 
 | App | Description |
 |---|---|
-| **fox_data2orga** (`apps/fox_data2orga/`) | Organigramme aus JSON/TTL/LDAP erzeugen: SVG, PDF, PDF/A-3b, interaktive Karte, REST-API v1, Web-UI mit History – alles lokal, barrierefrei (WCAG 2.1 AA). Projekt: https://github.com/KaiDeWitzka/fox_data2orga |
 | fox_netmap | Interaktive Netzwerkkarte des Heimnetzes |
 | languagetool, whoami, filezilla, jlesage-firefox, psitransfer | diverse |
 
-Hinweis fox_data2orga: Das Default-Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
-Public-Schaltung des Projekt-Repos auf GHCR veröffentlicht. Bis dahin auf dem Runtipi-Host lokal
-bauen (`git clone https://github.com/KaiDeWitzka/fox_data2orga.git && cd fox_data2orga && docker compose build`
-liefert `fox_data2orga:local`) und beim Installieren im Formularfeld **Docker-Image** eintragen
-(z. B. `fox_data2orga:local`). Datenverzeichnis: `${APP_DATA_DIR}/data` muss für uid 10001
-schreibbar sein (`sudo chown 10001:10001 <app-data>/fox_data2orga/data`). Alternativ direkt im
-Projekt-Repo: `git pull && docker compose up -d --build`.
