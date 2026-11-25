@@ -3,7 +3,7 @@
 # Formularfelder aus config.json stehen als ${ENV_VARIABLE} bereit.
 services:
   fox_data2orga:
-    image: ghcr.io/kaidewitzka/fox_data2orga:main
+    image: ${DATA2ORGA_IMAGE:-ghcr.io/kaidewitzka/fox_data2orga:main}
     container_name: fox_data2orga
     init: true
     # Härtung wie im Projekt-Image: non-root (uid 10001), read-only Root-FS, keine Caps, no-new-privileges
