@@ -39,7 +39,7 @@ x-netz-env: &netz-env
 
 services:
   netmap:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.6.12@sha256:78c2dd91967e55ae8bab95b5e0d3123af722916584af07269cac64f026cfb342
+    image: ghcr.io/kaidewitzka/fox_netmap:1.6.13@sha256:7d54ab74d2d53251a9a4fbeec1d144430cf349c0c2567f0e5591ee709d32158e
     restart: unless-stopped
     environment: *netz-env
     volumes:
@@ -52,7 +52,7 @@ services:
       internal_port: 8399
 
   netmap-scanner:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.6.12@sha256:78c2dd91967e55ae8bab95b5e0d3123af722916584af07269cac64f026cfb342
+    image: ghcr.io/kaidewitzka/fox_netmap:1.6.13@sha256:7d54ab74d2d53251a9a4fbeec1d144430cf349c0c2567f0e5591ee709d32158e
     restart: unless-stopped
     command: ["scanner"]
     # Host-Netzwerk, damit ARP/NDP/TR-064/SNMP das echte LAN erreichen
