@@ -27,6 +27,14 @@
   "form_fields": [
     {
       "type": "text",
+      "label": "Docker-Image",
+      "hint": "Default ghcr.io/kaidewitzka/fox_data2orga:main (ab Public-Schaltung des Repos auf GHCR). Bis dahin lokal gebautes Image eintragen, z. B. ghcr.io/kaidewitzka/fox_data2orga:main nach lokalem docker build -t ...",
+      "required": false,
+      "default": "ghcr.io/kaidewitzka/fox_data2orga:main",
+      "env_variable": "DATA2ORGA_IMAGE"
+    },
+    {
+      "type": "text",
       "label": "Admin-Benutzername (Basic-Auth)",
       "hint": "Leer lassen = Auth deaktiviert (bei Expose über Domain oder LAN-Zugriff nicht empfohlen)",
       "required": false,
