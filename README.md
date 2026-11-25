@@ -38,13 +38,10 @@ For detailed instructions on creating your own app store, please refer to the of
 | fox_netmap | Interaktive Netzwerkkarte des Heimnetzes |
 | languagetool, whoami, filezilla, jlesage-firefox, psitransfer | diverse |
 
-Hinweis fox_data2orga: Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
-Public-Schaltung des Projekt-Repos veröffentlicht. Bis dahin lokal bauen und taggen
-(`docker build -t ghcr.io/kaidewitzka/fox_data2orga:main .` im Projekt-Repo) und in
-Runtipi unter „Einstellungen → App anpassen" (user-config) das Image setzen.
-
-Hinweis fox_data2orga: Default-Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
-Public-Schaltung des Projekt-Repos auf GHCR veröffentlicht. Bis dahin auf dem Runtipi-Host
-lokal bauen (`git clone https://github.com/KaiDeWitzka/fox_data2orga.git && cd fox_data2orga && docker build -t ghcr.io/kaidewitzka/fox_data2orga:main .`)
-und beim Installieren im Formularfeld **„Docker-Image“** eintragen. Alternativ direkt im
+Hinweis fox_data2orga: Das Default-Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
+Public-Schaltung des Projekt-Repos auf GHCR veröffentlicht. Bis dahin auf dem Runtipi-Host lokal
+bauen (`git clone https://github.com/KaiDeWitzka/fox_data2orga.git && cd fox_data2orga && docker compose build`
+liefert `fox_data2orga:local`) und beim Installieren im Formularfeld **Docker-Image** eintragen
+(z. B. `fox_data2orga:local`). Datenverzeichnis: `${APP_DATA_DIR}/data` muss für uid 10001
+schreibbar sein (`sudo chown 10001:10001 <app-data>/fox_data2orga/data`). Alternativ direkt im
 Projekt-Repo: `git pull && docker compose up -d --build`.

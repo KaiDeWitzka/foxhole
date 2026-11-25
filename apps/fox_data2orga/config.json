@@ -9,9 +9,9 @@
     "utilities",
     "development"
   ],
-  "description": "fox_data2orga erzeugt Publikationsformate (SVG, PDF, PDF/A-3b für Langzeitarchivierung, barrierefreie HTML-Liste, zoombare interaktive Karte) aus Organigramm-Daten im JSON- oder TTL(RDF)-Format, optional direkt aus LDAP/AD. Inklusive Version-Vergleich (Diff), Konsistenz-Report, Volltextsuche, Kontakt-/Erreichbarkeitsfinder, Kennzahlen (CSV/XLSX) und versionierter REST-API v1 (Bearer-Token) für Intranet/Ticketsysteme. Web-UI mit Multi-Upload und History. Alle Daten bleiben lokal (SQLite + Data-Volume); Pseudonymisierung als Pipeline-Schritt vorhanden. BITV 2.0 / WCAG 2.1 AA, gehärtetes Image (non-root, read-only, cap_drop ALL, no-new-privileges, hash-gepinnte Dependencies, Trivy-Gate + SBOM in der CI).",
+  "description": "fox_data2orga erzeugt Publikationsformate (SVG, PDF, PDF/A-3b für Langzeitarchivierung, barrierefreie HTML-Liste, zoombare interaktive Karte) aus Organigramm-Daten im JSON- oder TTL(RDF)-Format, optional direkt aus LDAP/AD. Inklusive Version-Vergleich (Diff), Konsistenz-Report, Volltextsuche, Kontakt-/Erreichbarkeitsfinder, Kennzahlen (CSV/XLSX) und versionierter REST-API v1 (Bearer-Token) für Intranet/Ticketsysteme. Web-UI mit Multi-Upload und History. Alle Daten bleiben lokal (SQLite + Data-Volume); Pseudonymisierung als Pipeline-Schritt vorhanden. BITV 2.0 / WCAG 2.1 AA, gehärtetes Image (non-root uid 10001, read-only, cap_drop ALL, no-new-privileges, hash-gepinnte Dependencies, Trivy-Gate + SBOM in der CI).",
   "tipi_version": 1,
-  "version": "0.1.0",
+  "version": "0.4.2",
   "source": "https://github.com/KaiDeWitzka/fox_data2orga",
   "website": "https://github.com/KaiDeWitzka/fox_data2orga",
   "exposable": true,
@@ -20,7 +20,7 @@
     "amd64"
   ],
   "created_at": 1795599704000,
-  "updated_at": 1795599704000,
+  "updated_at": 1795607247164,
   "dynamic_config": true,
   "min_tipi_version": "4.7.0",
   "$schema": "../app-info-schema.json",
@@ -28,7 +28,7 @@
     {
       "type": "text",
       "label": "Docker-Image",
-      "hint": "Default ghcr.io/kaidewitzka/fox_data2orga:main (ab Public-Schaltung des Repos auf GHCR). Bis dahin lokal gebautes Image eintragen, z. B. ghcr.io/kaidewitzka/fox_data2orga:main nach lokalem docker build -t ...",
+      "hint": "Default ghcr.io/kaidewitzka/fox_data2orga:main (ab Public-Schaltung des Repos auf GHCR). Bis dahin lokal gebautes Image eintragen, z. B. fox_data2orga:local nach docker compose up -d --build im Projekt-Repo",
       "required": false,
       "default": "ghcr.io/kaidewitzka/fox_data2orga:main",
       "env_variable": "DATA2ORGA_IMAGE"
