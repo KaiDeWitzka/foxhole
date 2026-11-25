@@ -1,0 +1,133 @@
+{
+  "name": "fox_data2orga",
+  "id": "fox_data2orga",
+  "available": true,
+  "short_desc": "Organigramme aus JSON/TTL/LDAP erzeugen: SVG, PDF, PDF/A-3b, interaktive Karte, REST-API – lokal, barrierefrei (WCAG 2.1 AA).",
+  "author": "KaiDeWitzka",
+  "port": 8000,
+  "categories": [
+    "utilities",
+    "development"
+  ],
+  "description": "fox_data2orga erzeugt Publikationsformate (SVG, PDF, PDF/A-3b für Langzeitarchivierung, barrierefreie HTML-Liste, zoombare interaktive Karte) aus Organigramm-Daten im JSON- oder TTL(RDF)-Format, optional direkt aus LDAP/AD. Inklusive Version-Vergleich (Diff), Konsistenz-Report, Volltextsuche, Kontakt-/Erreichbarkeitsfinder, Kennzahlen (CSV/XLSX) und versionierter REST-API v1 (Bearer-Token) für Intranet/Ticketsysteme. Web-UI mit Multi-Upload und History. Alle Daten bleiben lokal (SQLite + Data-Volume); Pseudonymisierung als Pipeline-Schritt vorhanden. BITV 2.0 / WCAG 2.1 AA, gehärtetes Image (non-root, read-only, cap_drop ALL, no-new-privileges, hash-gepinnte Dependencies, Trivy-Gate + SBOM in der CI).",
+  "tipi_version": 1,
+  "version": "0.1.0",
+  "source": "https://github.com/KaiDeWitzka/fox_data2orga",
+  "website": "https://github.com/KaiDeWitzka/fox_data2orga",
+  "exposable": true,
+  "supported_architectures": [
+    "arm64",
+    "amd64"
+  ],
+  "created_at": 1795599704000,
+  "updated_at": 1795599704000,
+  "dynamic_config": true,
+  "min_tipi_version": "4.7.0",
+  "$schema": "../app-info-schema.json",
+  "form_fields": [
+    {
+      "type": "text",
+      "label": "Admin-Benutzername (Basic-Auth)",
+      "hint": "Leer lassen = Auth deaktiviert (bei Expose über Domain oder LAN-Zugriff nicht empfohlen)",
+      "required": false,
+      "env_variable": "DATA2ORGA_USER",
+      "min": 3,
+      "max": 64
+    },
+    {
+      "type": "password",
+      "label": "Admin-Passwort (Basic-Auth)",
+      "hint": "Leer lassen = Auth deaktiviert. Zeichen $ und # vermeiden (werden von Compose interpoliert)",
+      "required": false,
+      "env_variable": "DATA2ORGA_PASSWORD",
+      "min": 12,
+      "max": 128
+    },
+    {
+      "type": "text",
+      "label": "LDAP/AD-URI (optional)",
+      "placeholder": "ldaps://ldap.intern.example:636",
+      "hint": "Leer = kein Verzeichnisdienst-Import. TLS wird erzwungen (ldaps oder ldap + STARTTLS)",
+      "required": false,
+      "env_variable": "DATA2ORGA_LDAP_URI"
+    },
+    {
+      "type": "text",
+      "label": "LDAP-Basis-DN (optional)",
+      "placeholder": "ou=organisation,dc=example,dc=org",
+      "required": false,
+      "env_variable": "DATA2ORGA_LDAP_BASE_DN"
+    },
+    {
+      "type": "text",
+      "label": "LDAP-Bind-DN (Dienstkonto, nur Lesezugriff)",
+      "placeholder": "cn=lesekonto,dc=example,dc=org",
+      "required": false,
+      "env_variable": "DATA2ORGA_LDAP_BIND_DN"
+    },
+    {
+      "type": "password",
+      "label": "LDAP-Bind-Passwort (optional)",
+      "hint": "Wird nur in der app.env des Runtipi-Hosts gespeichert, nie im Log. Zeichen $ und # vermeiden",
+      "required": false,
+      "env_variable": "DATA2ORGA_LDAP_BIND_PASSWORD",
+      "min": 8,
+      "max": 128
+    },
+    {
+      "type": "text",
+      "label": "LDAP-Preset",
+      "required": false,
+      "default": "auto",
+      "options": [
+        {
+          "label": "auto (Erkennung über rootDSE)",
+          "value": "auto"
+        },
+        {
+          "label": "Active Directory",
+          "value": "ad"
+        },
+        {
+          "label": "OpenLDAP",
+          "value": "openldap"
+        }
+      ],
+      "env_variable": "DATA2ORGA_LDAP_PRESET"
+    },
+    {
+      "type": "boolean",
+      "label": "STARTTLS bei ldap:// verwenden",
+      "required": false,
+      "default": false,
+      "env_variable": "DATA2ORGA_LDAP_STARTTLS"
+    },
+    {
+      "type": "number",
+      "label": "Retention Uploads (Tage)",
+      "required": false,
+      "default": 90,
+      "env_variable": "DATA2ORGA_RETENTION_DAYS",
+      "min": 1,
+      "max": 3650
+    },
+    {
+      "type": "number",
+      "label": "Rate-Limit API v1 (Requests/Minute)",
+      "required": false,
+      "default": 120,
+      "env_variable": "DATA2ORGA_RATE_LIMIT",
+      "min": 10,
+      "max": 10000
+    },
+    {
+      "type": "number",
+      "label": "Max. Upload-Größe (MB)",
+      "required": false,
+      "default": 10,
+      "env_variable": "DATA2ORGA_MAX_UPLOAD_MB",
+      "min": 1,
+      "max": 100
+    }
+  ]
+}

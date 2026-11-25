@@ -29,3 +29,16 @@ This repository is intended to serve as a template for creating your own app sto
 
 For detailed instructions on creating your own app store, please refer to the official guide:
 [Create Your Own App Store Guide](https://runtipi.io/docs/guides/create-your-own-app-store)
+
+## Apps in this store
+
+| App | Description |
+|---|---|
+| **fox_data2orga** (`apps/fox_data2orga/`) | Organigramme aus JSON/TTL/LDAP erzeugen: SVG, PDF, PDF/A-3b, interaktive Karte, REST-API v1, Web-UI mit History – alles lokal, barrierefrei (WCAG 2.1 AA). Projekt: https://github.com/KaiDeWitzka/fox_data2orga |
+| fox_netmap | Interaktive Netzwerkkarte des Heimnetzes |
+| languagetool, whoami, filezilla, jlesage-firefox, psitransfer | diverse |
+
+Hinweis fox_data2orga: Image `ghcr.io/kaidewitzka/fox_data2orga:main` wird mit der
+Public-Schaltung des Projekt-Repos veröffentlicht. Bis dahin lokal bauen und taggen
+(`docker build -t ghcr.io/kaidewitzka/fox_data2orga:main .` im Projekt-Repo) und in
+Runtipi unter „Einstellungen → App anpassen" (user-config) das Image setzen.
