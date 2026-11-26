@@ -17,6 +17,7 @@
 - Der Scanner-Dienst läuft mit **Host-Netzwerk**, damit er dein echtes LAN sieht (ARP/NDP). Ohne `network_mode: host` sähe er nur das Docker-Netz.
 - Netzwerke (CIDR) können in den App-Einstellungen vorgegeben werden; leer = automatische Erkennung. FRITZ!Box-Zugangsdaten sind optional (TR-064).
 - Daten liegen unter `${APP_DATA_DIR}/data` (SQLite, Einstellungen, Layout) und bleiben bei Updates erhalten.
+- **TR-064 über HTTPS:** FRITZ!Box-URL `https://fritz.box:49443` setzen und die Option „TR-064: TLS-Zertifikatsprüfung abschalten" aktivieren (selbstsigniertes Zertifikat) — nur im eigenen LAN, MITM-Risiko; ohne HTTPS bleibt TR-064 auf `http://…:49000` (nur aus dem LAN erreichbar).
 - **SQLite auf NAS/Docker-Desktop:** Kommt `disk I/O error` im Log vor (WAL-shm auf dem Daten-Volume nicht nutzbar), in den App-Einstellungen **SQLite Journal-Modus = `delete`** setzen (`NETZ_SQLITE_JOURNAL`; Default `auto` mit automatischem Fallback).
 
 ---

@@ -15,6 +15,8 @@ x-netz-env: &netz-env
   NETZ_FRITZ_URLS: ${NETZ_FRITZ_URLS:-}
   NETZ_FRITZ_USER: ${NETZ_FRITZ_USER:-}
   NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
+  # TR-064 ueber HTTPS (https://…:49443): selbstsigniertes Zertifikat -> TLS-Pruefung abschalten (nur eigenes LAN, MITM-Risiko)
+  NETZ_TR064_INSECURE_TLS: ${NETZ_TR064_INSECURE_TLS:-false}
   NETZ_SNMP_ENABLED: ${NETZ_SNMP_ENABLED:-false}
   NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-public}
   NETZ_SNMP_SWITCHES: ${NETZ_SNMP_SWITCHES:-}
