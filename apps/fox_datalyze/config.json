@@ -1,0 +1,66 @@
+{
+  "name": "fox_datalyze",
+  "id": "fox_datalyze",
+  "available": true,
+  "short_desc": "Organigramme aus JSON/TTL publizieren: interaktive SVG-Karte, PDF/PDF-A, Berichte, Versions-Diff, Pseudonymisierung",
+  "author": "KaiDeWitzka",
+  "port": 8410,
+  "categories": [
+    "utilities"
+  ],
+  "description": "fox_datalyze liest Organigramm-Exporte (JSON oder TTL/RDF) und erzeugt Publikationsformate: barrierefreie interaktive SVG-Karte (WCAG 2.1 AA, 4 Layouts, zoombar, Klick-Details pro Einheit), PDF und PDF/A inkl. Poster-Formate (A0) und PDF/UA-1, Konsistenz- und Kennzahlen-Berichte mit CSV/XLSX-Export, Versions-Diff zweier Staende und Pseudonymisierung. REST-API hinter Session-Login (default an). Laeuft als unprivilegierter Container (UID 10001, read_only, no-new-privileges). Vollstaendig offline betreibbar. Open Source (MIT): https://github.com/KaiDeWitzka/fox_datalyze",
+  "tipi_version": 12,
+  "version": "0.1.0",
+  "source": "https://github.com/KaiDeWitzka/fox_datalyze",
+  "website": "https://github.com/KaiDeWitzka/fox_datalyze",
+  "exposable": true,
+  "supported_architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "created_at": 1795694400000,
+  "updated_at": 1795694400000,
+  "dynamic_config": true,
+  "min_tipi_version": "4.7.0",
+  "$schema": "../app-info-schema.json",
+  "form_fields": [
+    {
+      "type": "boolean",
+      "label": "Login aktivieren (DATALYZE_AUTH_ENABLED)",
+      "default": true,
+      "required": false,
+      "env_variable": "DATALYZE_AUTH_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Login-Benutzername (DATALYZE_AUTH_USER)",
+      "default": "admin",
+      "required": false,
+      "env_variable": "DATALYZE_AUTH_USER"
+    },
+    {
+      "type": "password",
+      "label": "Login-Passwort (DATALYZE_AUTH_PASS)",
+      "hint": "leer lassen = beim ersten Start liegt das Startpasswort in ${APP_DATA_DIR}/data/initial-admin-password.txt (Rechte 0600)",
+      "required": false,
+      "env_variable": "DATALYZE_AUTH_PASS"
+    },
+    {
+      "type": "number",
+      "label": "Aufbewahrung der Uploads in Tagen (0 = nie loeschen)",
+      "default": 90,
+      "min": 0,
+      "required": false,
+      "env_variable": "DATALYZE_RETENTION_DAYS"
+    },
+    {
+      "type": "number",
+      "label": "Max. Upload-Groesse (MB)",
+      "default": 25,
+      "min": 1,
+      "max": 200,
+      "required": false,
+      "env_variable": "DATALYZE_MAX_UPLOAD_MB"
+    }
+  ]
+}

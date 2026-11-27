@@ -35,6 +35,7 @@ For detailed instructions on creating your own app store, please refer to the of
 | App | Description |
 |---|---|
 | fox_netmap | Interaktive Netzwerkkarte des Heimnetzes |
+| fox_datalyze | Organigramme aus JSON/TTL publizieren: interaktive SVG-Karte, PDF/PDF-A, Berichte, Diff, Pseudonymisierung |
 | languagetool, whoami, filezilla, jlesage-firefox, psitransfer | diverse |
 
 ## Betrieb & Troubleshooting (Runtipi-Host)

@@ -1,0 +1,35 @@
+# fox_datalyze als RunTipi-App (Release-Appstore foxhole; getestet in fox_tmp).
+# Image: ghcr.io/kaidewitzka/fox_datalyze:main, per Digest gepinnt (aus dem main-scan-Lauf fuer Commit 6a473fa).
+# Haertung wie upstream: read_only, no-new-privileges; der Entrypoint im Image startet als UID 10001
+# und raeumt alle Capabilities ab.
+x-dlz-env: &dlz-env
+  DATALYZE_DATA_DIR: /data
+  DATALYZE_PORT: "8410"
+  DATALYZE_AUTH_ENABLED: ${DATALYZE_AUTH_ENABLED:-true}
+  DATALYZE_AUTH_USER: ${DATALYZE_AUTH_USER:-admin}
+  DATALYZE_AUTH_PASS: ${DATALYZE_AUTH_PASS:-}
+  DATALYZE_COOKIE_SECURE: ${DATALYZE_COOKIE_SECURE:-auto}
+  DATALYZE_RETENTION_DAYS: ${DATALYZE_RETENTION_DAYS:-90}
+  DATALYZE_MAX_UPLOAD_MB: ${DATALYZE_MAX_UPLOAD_MB:-25}
+  DATALYZE_THEME: ${DATALYZE_THEME:-dark}
+  DATALYZE_LANG: ${DATALYZE_LANG:-de}
+  TZ: ${TZ:-Europe/Berlin}
+
+services:
+  datalyze:
+    image: ghcr.io/kaidewitzka/fox_datalyze:main@sha256:5c6904fd87ebba955b939599c7ad6bb4dcfdd480a3bf193b7bd15e09673db9a4
+    restart: unless-stopped
+    environment: *dlz-env
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    x-runtipi:
+      is_main: true
+      internal_port: 8410
+
+x-runtipi:
+  schema_version: 2
