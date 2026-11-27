@@ -1,5 +1,5 @@
 # fox_datalyze als RunTipi-App (Release-Appstore foxhole; getestet in fox_tmp).
-# Image: ghcr.io/kaidewitzka/fox_datalyze:main, per Digest gepinnt (aus dem main-scan-Lauf fuer Commit 6a473fa).
+# Image: ghcr.io/kaidewitzka/fox_datalyze:main, per Digest gepinnt (aus dem main-scan-Lauf fuer Commit 3462387).
 # Haertung wie upstream: read_only, no-new-privileges; der Entrypoint im Image startet als UID 10001
 # und raeumt alle Capabilities ab.
 x-dlz-env: &dlz-env
@@ -17,7 +17,7 @@ x-dlz-env: &dlz-env
 
 services:
   datalyze:
-    image: ghcr.io/kaidewitzka/fox_datalyze:main@sha256:5c6904fd87ebba955b939599c7ad6bb4dcfdd480a3bf193b7bd15e09673db9a4
+    image: ghcr.io/kaidewitzka/fox_datalyze:main@sha256:98e8b6e0a89621916ee27485e65dc534c4b7fc0ef6edb19300788ee8d3cb62a3
     restart: unless-stopped
     environment: *dlz-env
     volumes:
