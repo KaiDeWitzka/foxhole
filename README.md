@@ -37,3 +37,10 @@ For detailed instructions on creating your own app store, please refer to the of
 | fox_netmap | Interaktive Netzwerkkarte des Heimnetzes |
 | languagetool, whoami, filezilla, jlesage-firefox, psitransfer | diverse |
 
+## Betrieb & Troubleshooting (Runtipi-Host)
+
+- [Fehleranalyse runtipi-Logs 2026-11](docs/runtipi-betrieb/logfehler-2026-11.md) — stale ACME-Zertifikate (NXDOMAIN), `middleware "runtipi@docker" does not exist` (sshwifty-migrated), ACME-Scan-Token (harmlos)
+- Host-Skripte:
+  - `scripts/prune-stale-acme-certs.sh` — stale Zertifikate sicher aus `acme.json` entfernen (Dry-Run default, Backup, `chmod 600`, Guard gegen laufendem `runtipi-reverse-proxy`)
+  - `scripts/find-stale-traefik-routers.sh` — Container mit Routern auf nicht existierende `@docker`-Middlewares finden
+
