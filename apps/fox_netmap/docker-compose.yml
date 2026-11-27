@@ -1,12 +1,18 @@
-# fox_netmap als RunTipi-App.
-# Zwei Dienste aus dem selben Image (ghcr.io/kaidewitzka/fox_netmap, per Digest gepinnt):
-#   - netmap          Web-UI (Port aus den App-Einstellungen, intern 8399)
+# fox_netmap als RunTipi-App (Test-Repo fox_tmp).
+# Zwei Dienste aus dem selben Image (ghcr.io/kaidewitzka/fox_netmap, per Tag+Digest gepinnt):
+#   - netmap          Web-UI, Runtipi mappt den App-Port (config.json "port") auf internal_port 8399
 #   - netmap-scanner  zyklischer Scanner, braucht host-Netzwerk + NET_RAW (ping), um das LAN zu sehen
-# Härtung wie upstream (fox_netmap >= v1.5.0): read_only, kein no-new-privileges nur am Web-Dienst;
-# der Entrypoint im Image startet beide als UID 10001 und räumt alle Capabilities bis auf NET_RAW (Scanner) ab.
+# Haertung wie upstream (fox_netmap >= v1.5.0): read_only, tmpfs /tmp, Web ohne Capabilities und mit
+# no-new-privileges; der Entrypoint im Image startet beide als UID 10001 undraeumt alle Capabilities
+# bis auf NET_RAW (Scanner) ab. Zum Testen eines noch nicht releasten Branches das Image auf
+# ghcr.io/kaidewitzka/fox_netmap:main bzw. :sha-<sha> umstellen (nach dem Push des Branches).
+# Hinweis: solange das GitHub-Repo privat ist, braucht der Pull aus ghcr.io ein Token (read:packages).
 x-netz-env: &netz-env
   NETZ_DATA_DIR: /data
+  NETZ_HOST: 0.0.0.0
+  NETZ_PORT: "8399" # intern fix; Runtipi mappt den Host-Port darauf (x-runtipi.internal_port)
   NETZ_SUBNETS: ${NETZ_SUBNETS:-}
+  NETZ_SITES: ${NETZ_SITES:-}
   NETZ_SCAN_INTERVAL: ${NETZ_SCAN_INTERVAL:-900}
   NETZ_SCAN_TIMEOUT: ${NETZ_SCAN_TIMEOUT:-1}
   NETZ_PORT_TOP: ${NETZ_PORT_TOP:-1000}
@@ -15,10 +21,11 @@ x-netz-env: &netz-env
   NETZ_FRITZ_URLS: ${NETZ_FRITZ_URLS:-}
   NETZ_FRITZ_USER: ${NETZ_FRITZ_USER:-}
   NETZ_FRITZ_PASS: ${NETZ_FRITZ_PASS:-}
-  # TR-064 ueber HTTPS (https://…:49443): selbstsigniertes Zertifikat -> TLS-Pruefung abschalten (nur eigenes LAN, MITM-Risiko)
+  NETZ_FRITZ_MESH: ${NETZ_FRITZ_MESH:-true}
   NETZ_TR064_INSECURE_TLS: ${NETZ_TR064_INSECURE_TLS:-false}
+  NETZ_VPN_POOL: ${NETZ_VPN_POOL:-off}
   NETZ_SNMP_ENABLED: ${NETZ_SNMP_ENABLED:-false}
-  NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-public}
+  NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-} # seit v1.6.0 KEIN Default mehr; leer = kein SNMP
   NETZ_SNMP_SWITCHES: ${NETZ_SNMP_SWITCHES:-}
   NETZ_AUTH_ENABLED: ${NETZ_AUTH_ENABLED:-true}
   NETZ_AUTH_USER: ${NETZ_AUTH_USER:-admin}
@@ -28,25 +35,37 @@ x-netz-env: &netz-env
   NETZ_NOTIFY_GOTIFY_TOKEN: ${NETZ_NOTIFY_GOTIFY_TOKEN:-}
   NETZ_NOTIFY_NTFY: ${NETZ_NOTIFY_NTFY:-}
   NETZ_NOTIFY_NTFY_TOKEN: ${NETZ_NOTIFY_NTFY_TOKEN:-}
+  NETZ_ALARM_WHITELIST: ${NETZ_ALARM_WHITELIST:-}
   NETZ_HISTORY_HOURS: ${NETZ_HISTORY_HOURS:-720}
   NETZ_DEVICE_RETENTION_DAYS: ${NETZ_DEVICE_RETENTION_DAYS:-30}
-  NETZ_THEME: ${NETZ_THEME:-dark}
+  NETZ_EVENT_RETENTION_DAYS: ${NETZ_EVENT_RETENTION_DAYS:-90}
   NETZ_AUTO_EXPORT: ${NETZ_AUTO_EXPORT:-false}
+  NETZ_AUTO_EXPORT_DIR: ${NETZ_AUTO_EXPORT_DIR:-exports}
+  NETZ_AUTO_EXPORT_INTERVAL_HOURS: ${NETZ_AUTO_EXPORT_INTERVAL_HOURS:-24}
+  NETZ_MDNS_ENABLED: ${NETZ_MDNS_ENABLED:-true}
+  NETZ_OUI_ONLINE_ENABLED: ${NETZ_OUI_ONLINE_ENABLED:-false} # Datenschutz: Default aus
+  NETZ_OUI_ONLINE_MAX: ${NETZ_OUI_ONLINE_MAX:-10}
+  NETZ_OUI_ONLINE_URL: ${NETZ_OUI_ONLINE_URL:-https://api.macvendors.com}
+  NETZ_THEME: ${NETZ_THEME:-dark}
+  NETZ_LANG: ${NETZ_LANG:-de}
   NETZ_EMBED_ANCESTORS: ${NETZ_EMBED_ANCESTORS:-*}
   NETZ_COOKIE_SECURE: ${NETZ_COOKIE_SECURE:-auto}
-  NETZ_OUI_ONLINE_ENABLED: ${NETZ_OUI_ONLINE_ENABLED:-false}
-  # SQLite-Journal: auto = WAL mit Fallback auf delete (bei disk I/O error auf manchen Bind-Mounts)
+  # env-only (kein Schema-Eintrag): wird in app/db.py bzw. app/__main__.py per os.getenv gelesen
   NETZ_SQLITE_JOURNAL: ${NETZ_SQLITE_JOURNAL:-auto}
   TZ: ${TZ:-Europe/Berlin}
 
 services:
   netmap:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.6.18@sha256:ada26791abad9477d4242771c81af3da006180bf28dd614cec8124ddfb8e2827
+    image: ghcr.io/kaidewitzka/fox_netmap:1.7.0@sha256:3d757df0983f6d64ac7a7f4073d93446913a4e30168bc0f91d76797bdb0f2a9e
+    init: true # SIGTERM sauber an den Prozess weiterreichen
     restart: unless-stopped
     environment: *netz-env
     volumes:
       - ${APP_DATA_DIR}/data:/data
     read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m # Deckel fuer PDF-Export und Bilder
     security_opt:
       - no-new-privileges:true
     x-runtipi:
@@ -54,7 +73,8 @@ services:
       internal_port: 8399
 
   netmap-scanner:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.6.18@sha256:ada26791abad9477d4242771c81af3da006180bf28dd614cec8124ddfb8e2827
+    image: ghcr.io/kaidewitzka/fox_netmap:1.7.0@sha256:3d757df0983f6d64ac7a7f4073d93446913a4e30168bc0f91d76797bdb0f2a9e
+    init: true
     restart: unless-stopped
     command: ["scanner"]
     # Host-Netzwerk, damit ARP/NDP/TR-064/SNMP das echte LAN erreichen
@@ -67,6 +87,8 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/data
     read_only: true
+    tmpfs:
+      - /tmp
 
 x-runtipi:
   schema_version: 2

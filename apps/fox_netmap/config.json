@@ -8,9 +8,9 @@
   "categories": [
     "network"
   ],
-  "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
-  "tipi_version": 12,
-  "version": "1.6.18",
+  "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue Geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
+  "tipi_version": 13,
+  "version": "1.7.0",
   "source": "https://github.com/KaiDeWitzka/fox_netmap",
   "website": "https://github.com/KaiDeWitzka/fox_netmap",
   "exposable": true,
@@ -19,7 +19,7 @@
     "arm64"
   ],
   "created_at": 1795438196971,
-  "updated_at": 1795696332367,
+  "updated_at": 1795765553756,
   "dynamic_config": true,
   "min_tipi_version": "4.7.0",
   "$schema": "../app-info-schema.json",
@@ -36,33 +36,71 @@
       "type": "number",
       "label": "Scan-Intervall (Sekunden)",
       "default": 900,
-      "min": 60,
+      "min": 30,
+      "max": 86400,
       "required": false,
       "env_variable": "NETZ_SCAN_INTERVAL"
     },
     {
-      "type": "url",
-      "label": "FRITZ!Box URL",
-      "hint": "z. B. http://fritz.box oder https://fritz.box:49443 — TR-064: Geraete, VPN, WAN-IP",
+      "type": "number",
+      "label": "Scan-Timeout (Sekunden)",
+      "default": 1,
+      "min": 0.2,
+      "max": 10,
       "required": false,
+      "env_variable": "NETZ_SCAN_TIMEOUT"
+    },
+    {
+      "type": "number",
+      "label": "Port-Umfang (Top-N, 0 = alle)",
+      "default": 1000,
+      "min": 0,
+      "max": 65535,
+      "required": false,
+      "env_variable": "NETZ_PORT_TOP"
+    },
+    {
+      "type": "text",
+      "label": "Eigene Portliste (z. B. 80,443,8080)",
+      "hint": "ueberschreibt Top-N, kommagetrennt, 1-65535",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_PORTS"
+    },
+    {
+      "type": "url",
+      "label": "FRITZ!Box URL (TR-064)",
+      "hint": "z. B. http://fritz.box oder https://fritz.box:49443 — Geraete, VPN, WAN-IP",
+      "required": false,
+      "default": "",
       "env_variable": "NETZ_FRITZ_URL"
+    },
+    {
+      "type": "text",
+      "label": "Weitere TR-064-Endpunkte (z. B. Repeater)",
+      "hint": "kommagetrennt, je host oder URL",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_FRITZ_URLS"
     },
     {
       "type": "text",
       "label": "FRITZ!Box Benutzername",
       "required": false,
+      "default": "",
       "env_variable": "NETZ_FRITZ_USER"
     },
     {
       "type": "password",
       "label": "FRITZ!Box Passwort",
       "required": false,
+      "default": "",
       "env_variable": "NETZ_FRITZ_PASS"
     },
     {
       "type": "boolean",
-      "label": "TR-064: TLS-Zertifikatsprüfung abschalten (NETZ_TR064_INSECURE_TLS)",
-      "hint": "Nur nötig bei FRITZ!Box-URL mit https://…:49443 (selbstsigniertes Zertifikat). ACHTUNG: nur im eigenen LAN aktivieren — Verbindung kann mitgeschnitten/gefälscht werden (MITM). Default: aus (sichere Prüfung).",
+      "label": "TR-064: TLS-Zertifikatspruefung abschalten (https://…:49443)",
+      "hint": "Nur bei FRITZ!Box-URL mit https://…:49443 (selbstsigniertes Zertifikat). ACHTUNG: nur im eigenen LAN — Verbindung kann mitgeschnitten/gefaelscht werden (MITM). Default: aus (sichere Pruefung). Bei TLS-Fehlern faellt TR-064 auf http zurueck und loggt WARN je Lauf mit Port-Hinweis 49443.",
       "default": false,
       "required": false,
       "env_variable": "NETZ_TR064_INSECURE_TLS"
@@ -70,16 +108,25 @@
     {
       "type": "boolean",
       "label": "SNMP aktivieren",
+      "hint": "CAM-Tabelle + LLDP verwalteter Switche; ohne Community wird kein SNMP abgefragt",
       "default": false,
       "required": false,
       "env_variable": "NETZ_SNMP_ENABLED"
     },
     {
-      "type": "text",
-      "label": "SNMP Community",
-      "default": "public",
+      "type": "password",
+      "label": "SNMP Community (read-only)",
+      "hint": "Seit v1.6.0 kein Standardwert mehr ('public' nie verwenden); leer = kein SNMP",
       "required": false,
+      "default": "",
       "env_variable": "NETZ_SNMP_COMMUNITY"
+    },
+    {
+      "type": "text",
+      "label": "SNMP-Switches (IPs/Hostnames, kommagetrennt)",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_SNMP_SWITCHES"
     },
     {
       "type": "boolean",
@@ -98,14 +145,156 @@
     {
       "type": "password",
       "label": "Login-Passwort",
-      "hint": "leer lassen = erstmalig in den fox_netmap-Einstellungen setzen",
+      "hint": "leer lassen = zufaelliges Startpasswort in initial-admin-password.txt im Daten-Volume (nicht im Log)",
       "required": false,
+      "default": "",
       "env_variable": "NETZ_AUTH_PASS"
     },
     {
       "type": "text",
+      "label": "VPN-Adresspool",
+      "hint": "off (Default; mit TR-064 automatisch 'auto'), auto = FRITZ!-Konvention (.201+ im Gateway-/24), oder CIDRs/Bereiche kommagetrennt",
+      "required": false,
+      "default": "off",
+      "env_variable": "NETZ_VPN_POOL"
+    },
+    {
+      "type": "text",
+      "label": "Standorte (Name:Subnetz; …)",
+      "hint": "z. B. Zuhause:192.168.178.0/24; Remote:198.51.100.0/24",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_SITES"
+    },
+    {
+      "type": "text",
+      "label": "Alarm-Whitelist (MACs/IPs, kommagetrennt)",
+      "hint": "diese loesen keinen 'neues Geraet'-Alarm aus",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_ALARM_WHITELIST"
+    },
+    {
+      "type": "url",
+      "label": "Alarm-Webhook-URL",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_WEBHOOK"
+    },
+    {
+      "type": "url",
+      "label": "Gotify-URL",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_GOTIFY"
+    },
+    {
+      "type": "password",
+      "label": "Gotify App-Token",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_GOTIFY_TOKEN"
+    },
+    {
+      "type": "url",
+      "label": "ntfy-URL (Topic)",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_NTFY"
+    },
+    {
+      "type": "password",
+      "label": "ntfy Token",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_NOTIFY_NTFY_TOKEN"
+    },
+    {
+      "type": "boolean",
+      "label": "mDNS-Namensaufloesung",
+      "default": true,
+      "required": false,
+      "env_variable": "NETZ_MDNS_ENABLED"
+    },
+    {
+      "type": "boolean",
+      "label": "Online-OUI-Fallback (Hersteller online nachschlagen)",
+      "hint": "Datenschutz: MAC-Praefixe gehen an api.macvendors.com (oder eigene URL) — Default AUS",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_OUI_ONLINE_ENABLED"
+    },
+    {
+      "type": "number",
+      "label": "Historie (Stunden)",
+      "default": 720,
+      "min": 1,
+      "max": 87600,
+      "required": false,
+      "env_variable": "NETZ_HISTORY_HOURS"
+    },
+    {
+      "type": "number",
+      "label": "Geraete-Retention (Tage offline, 0 = nie)",
+      "default": 30,
+      "min": 0,
+      "max": 3650,
+      "required": false,
+      "env_variable": "NETZ_DEVICE_RETENTION_DAYS"
+    },
+    {
+      "type": "number",
+      "label": "Ereignis-Retention (Tage, 0 = nie)",
+      "default": 90,
+      "min": 0,
+      "max": 3650,
+      "required": false,
+      "env_variable": "NETZ_EVENT_RETENTION_DAYS"
+    },
+    {
+      "type": "boolean",
+      "label": "Auto-Export (JSON+CSV in exports/)",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_AUTO_EXPORT"
+    },
+    {
+      "type": "number",
+      "label": "Auto-Export-Intervall (Stunden, 0 = nach jedem Scan)",
+      "default": 24,
+      "min": 0,
+      "max": 720,
+      "required": false,
+      "env_variable": "NETZ_AUTO_EXPORT_INTERVAL_HOURS"
+    },
+    {
+      "type": "text",
+      "label": "Theme",
+      "hint": "dark oder light",
+      "default": "dark",
+      "required": false,
+      "env_variable": "NETZ_THEME"
+    },
+    {
+      "type": "text",
+      "label": "UI-Sprache",
+      "hint": "de/en/fr/es/it/pt",
+      "default": "de",
+      "required": false,
+      "env_variable": "NETZ_LANG"
+    },
+    {
+      "type": "text",
+      "label": "Erlaubte Einbetter fuer /embed (CSP frame-ancestors)",
+      "hint": "Default * (alle); Empfehlung: eigene Domains, z. B. https://wiki.example.org",
+      "required": false,
+      "default": "*",
+      "env_variable": "NETZ_EMBED_ANCESTORS"
+    },
+    {
+      "type": "text",
       "label": "SQLite Journal-Modus",
-      "hint": "auto = WAL mit automatischem Fallback; bei 'disk I/O error' (z. B. NAS/Docker Desktop): delete",
+      "hint": "auto = WAL mit automatischem Fallback auf delete bei 'disk I/O error' (z. B. NAS/Docker Desktop); wal oder delete erzwingen",
       "default": "auto",
       "required": false,
       "env_variable": "NETZ_SQLITE_JOURNAL"
