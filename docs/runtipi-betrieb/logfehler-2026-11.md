@@ -49,6 +49,15 @@ docker stop runtipi-reverse-proxy
 docker start runtipi-reverse-proxy
 ```
 
+**Hinweise zur Ausführung:**
+
+- `Permission denied` beim Ausführen = fehlendes Executable-Bit (z. B. Datei per Copy/`wget` statt
+  `git clone` kopiert) oder `noexec`-Mount: `chmod +x scripts/prune-stale-acme-certs.sh` oder Aufruf
+  via `bash scripts/prune-stale-acme-certs.sh ...`.
+- Bei `sudo` zeigt `$HOME` auf `/root`. Das Skript erkennt dann automatisch das Home des
+  `SUDO_USER`; alternativ explizit: `--acme /home/kai/runtipi/traefik/shared/acme.json`.
+- Tatsächlichen Pfad prüfen: `ls -l ~/runtipi/traefik/shared/acme.json` (Runtipi v4).
+
 **Kontrolle (24-48 h später):**
 
 ```bash

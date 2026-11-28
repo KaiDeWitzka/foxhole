@@ -70,14 +70,19 @@ fi
 command -v jq >/dev/null 2>&1 || { echo "FEHLER: jq fehlt (z. B. apt install jq)" >&2; exit 1; }
 
 if [[ -z "$ACME" ]]; then
-  for candidate in \
-    "${RUNTIPI_DIR:-/nonexistent}/traefik/shared/acme.json" \
-    "$HOME/runtipi/traefik/shared/acme.json" \
-    "$HOME/runtipi/state/traefik/acme.json" \
-    "$HOME/runtipi/app-data/traefik/shared/acme.json" \
-    "./acme.json"; do
-    if [[ -f "$candidate" ]]; then ACME="$candidate"; break; fi
+  roots=()
+  [[ -n "${RUNTIPI_DIR:-}" ]] && roots+=("$RUNTIPI_DIR")
+  roots+=("$HOME/runtipi")
+  if [[ -n "${SUDO_USER:-}" ]]; then
+    sudo_home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
+    [[ -n "$sudo_home" ]] && roots+=("$sudo_home/runtipi")
+  fi
+  for root in "${roots[@]}"; do
+    for rel in "traefik/shared/acme.json" "state/traefik/acme.json" "app-data/traefik/shared/acme.json"; do
+      if [[ -f "$root/$rel" ]]; then ACME="$root/$rel"; break 2; fi
+    done
   done
+  if [[ -z "$ACME" && -f "./acme.json" ]]; then ACME="./acme.json"; fi
 fi
 
 if [[ -z "$ACME" || ! -f "$ACME" ]]; then
