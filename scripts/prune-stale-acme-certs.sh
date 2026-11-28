@@ -77,20 +77,44 @@ if [[ -z "$ACME" ]]; then
     sudo_home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
     [[ -n "$sudo_home" ]] && roots+=("$sudo_home/runtipi")
   fi
+  candidates=()
   for root in "${roots[@]}"; do
-    for rel in "traefik/shared/acme.json" "state/traefik/acme.json" "app-data/traefik/shared/acme.json"; do
-      if [[ -f "$root/$rel" ]]; then ACME="$root/$rel"; break 2; fi
-    done
+    if [[ -d "$root" ]]; then
+      while IFS= read -r f; do candidates+=("$f"); done \
+        < <(find "$root" -maxdepth 5 -name acme.json -type f 2>/dev/null | sort)
+    fi
   done
-  if [[ -z "$ACME" && -f "./acme.json" ]]; then ACME="./acme.json"; fi
+  [[ -f "./acme.json" ]] && candidates+=("./acme.json")
+  for c in "${candidates[@]}"; do
+    if [[ ! -s "$c" ]]; then
+      echo "HINWEIS: $c ist leer - uebersprungen" >&2
+      continue
+    fi
+    if jq -e 'type == "object"' "$c" >/dev/null 2>&1; then
+      ACME="$c"
+      break
+    fi
+    echo "HINWEIS: $c enthaelt kein valides JSON-Objekt - uebersprungen" >&2
+  done
 fi
 
 if [[ -z "$ACME" || ! -f "$ACME" ]]; then
-  echo "FEHLER: acme.json nicht gefunden - bitte --acme <pfad> angeben" >&2
+  echo "FEHLER: keine gueltige acme.json gefunden - bitte --acme <pfad> angeben" >&2
+  echo "Kandidaten pruefen: find ~/runtipi -name acme.json -type f -ls" >&2
+  echo "Mounts des Proxy:   docker inspect runtipi-reverse-proxy --format '{{json .Mounts}}'" >&2
   exit 1
 fi
 
-jq -e . "$ACME" >/dev/null 2>&1 || { echo "FEHLER: $ACME ist kein valides JSON" >&2; exit 1; }
+if [[ -s "$ACME" ]]; then
+  jq -e 'type == "object"' "$ACME" >/dev/null 2>&1 || {
+    echo "FEHLER: $ACME ist kein valides JSON-Objekt (Groesse $(stat -c %s "$ACME") Bytes, Anfang: $(head -c 60 "$ACME" | tr '\n' ' '))" >&2
+    echo "Falls korrupt: Backup einspielen (acme.json.bak-*) oder Datei loeschen und Proxy neu starten (Zertifikate werden neu ausgestellt)." >&2
+    exit 1
+  }
+else
+  echo "HINWEIS: $ACME ist leer - keine Zertifikate gespeichert, nichts zu prunen."
+  exit 0
+fi
 
 if [[ $APPLY -eq 1 && $FORCE -eq 0 ]] && command -v docker >/dev/null 2>&1; then
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "runtipi-reverse-proxy"; then

@@ -56,7 +56,14 @@ docker start runtipi-reverse-proxy
   via `bash scripts/prune-stale-acme-certs.sh ...`.
 - Bei `sudo` zeigt `$HOME` auf `/root`. Das Skript erkennt dann automatisch das Home des
   `SUDO_USER`; alternativ explizit: `--acme /home/kai/runtipi/traefik/shared/acme.json`.
-- Tatsächlichen Pfad prüfen: `ls -l ~/runtipi/traefik/shared/acme.json` (Runtipi v4).
+- Alle `acme.json`-Kandidaten unter dem runtipi-Root werden gesucht (`find ~/runtipi -maxdepth 5
+  -name acme.json -type f`). **Leere oder ungültige Dateien werden mit Hinweis übersprungen** —
+  z. B. liegt an `traefik/shared/acme.json` manchmal ein leerer Placeholder, während die echte
+  Datei unter `state/traefik/shared/acme.json` liegt (versionsabhängig).
+- Ist die gewählte Datei korrupt (kein valides JSON), meldet das Skript Größe + Dateianfang.
+  Dann: Backup einspielen (`acme.json.bak-*`) oder Datei löschen und Proxy neu starten
+  (Zertifikate werden neu ausgestellt). Wo Traefik wirklich speichert, sieht man an den Mounts:
+  `docker inspect runtipi-reverse-proxy --format '{{json .Mounts}}' | jq`.
 
 **Kontrolle (24-48 h später):**
 
