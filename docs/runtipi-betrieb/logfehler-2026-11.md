@@ -49,6 +49,22 @@ docker stop runtipi-reverse-proxy
 docker start runtipi-reverse-proxy
 ```
 
+**Hinweise zur Ausführung:**
+
+- `Permission denied` beim Ausführen = fehlendes Executable-Bit (z. B. Datei per Copy/`wget` statt
+  `git clone` kopiert) oder `noexec`-Mount: `chmod +x scripts/prune-stale-acme-certs.sh` oder Aufruf
+  via `bash scripts/prune-stale-acme-certs.sh ...`.
+- Bei `sudo` zeigt `$HOME` auf `/root`. Das Skript erkennt dann automatisch das Home des
+  `SUDO_USER`; alternativ explizit: `--acme /home/kai/runtipi/traefik/shared/acme.json`.
+- Alle `acme.json`-Kandidaten unter dem runtipi-Root werden gesucht (`find ~/runtipi -maxdepth 5
+  -name acme.json -type f`). **Leere oder ungültige Dateien werden mit Hinweis übersprungen** —
+  z. B. liegt an `traefik/shared/acme.json` manchmal ein leerer Placeholder, während die echte
+  Datei unter `state/traefik/shared/acme.json` liegt (versionsabhängig).
+- Ist die gewählte Datei korrupt (kein valides JSON), meldet das Skript Größe + Dateianfang.
+  Dann: Backup einspielen (`acme.json.bak-*`) oder Datei löschen und Proxy neu starten
+  (Zertifikate werden neu ausgestellt). Wo Traefik wirklich speichert, sieht man an den Mounts:
+  `docker inspect runtipi-reverse-proxy --format '{{json .Mounts}}' | jq`.
+
 **Kontrolle (24-48 h später):**
 
 ```bash
