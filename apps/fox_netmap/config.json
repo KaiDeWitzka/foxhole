@@ -10,7 +10,7 @@
   ],
   "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue Geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
   "tipi_version": 13,
-  "version": "1.7.0",
+  "version": "1.8.2",
   "source": "https://github.com/KaiDeWitzka/fox_netmap",
   "website": "https://github.com/KaiDeWitzka/fox_netmap",
   "exposable": true,
@@ -127,6 +127,38 @@
       "required": false,
       "default": "",
       "env_variable": "NETZ_SNMP_SWITCHES"
+    },
+    {
+      "type": "boolean",
+      "label": "Container-Scan: Docker Engine API abfragen (read-only)",
+      "hint": "Liest /version, /containers/json, /networks auf Port 2376 (TLS) bzw. 2375 - nur lesend. ACHTUNG: die Engine-API ist root-aequivalent am Docker-Host; daher default AUS und nur fuer explizit konfigurierte Hosts bzw. lokal (127.0.0.1) im eigenen LAN. Container erscheinen als Kategorie 'Container' und haengen in der Karte am Docker-Host.",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_DOCKER_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Docker-Hosts (host[:port], kommagetrennt)",
+      "hint": "z. B. 127.0.0.1:2376 (Scanner laeuft auf dem Docker-Host, daemon nur auf Loopback) oder <LAN-IP>:2376 (Firewall auf Scanner-IP begrenzen!). Ohne Port wird 2376 (TLS) dann 2375 (HTTP) versucht. Leer = nur Auto-Erkennung ueber offene Ports 2375/2376 im Port-Scan.",
+      "default": "",
+      "required": false,
+      "env_variable": "NETZ_DOCKER_HOSTS"
+    },
+    {
+      "type": "boolean",
+      "label": "Docker 2376: TLS-Zertifikatspruefung abschalten",
+      "hint": "Nur bei selbstsigniertem Zertifikat. ACHTUNG: nur im eigenen LAN (MITM-Risiko). Default: aus (sichere Pruefung).",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_DOCKER_INSECURE_TLS"
+    },
+    {
+      "type": "password",
+      "label": "Docker API Bearer-Token (optional)",
+      "hint": "Nur wenn die Engine-API token-geschuetzt ist. Wird nur im Authorization-Header gesendet und nie geloggt. Leer = kein Token.",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_DOCKER_TOKEN"
     },
     {
       "type": "boolean",
