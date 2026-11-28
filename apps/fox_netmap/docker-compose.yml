@@ -27,6 +27,11 @@ x-netz-env: &netz-env
   NETZ_SNMP_ENABLED: ${NETZ_SNMP_ENABLED:-false}
   NETZ_SNMP_COMMUNITY: ${NETZ_SNMP_COMMUNITY:-} # seit v1.6.0 KEIN Default mehr; leer = kein SNMP
   NETZ_SNMP_SWITCHES: ${NETZ_SNMP_SWITCHES:-}
+  # Container-Scan ueber Docker Engine API (read-only, default AUS - API ist root-aequivalent am Host)
+  NETZ_DOCKER_ENABLED: ${NETZ_DOCKER_ENABLED:-false}
+  NETZ_DOCKER_HOSTS: ${NETZ_DOCKER_HOSTS:-}
+  NETZ_DOCKER_INSECURE_TLS: ${NETZ_DOCKER_INSECURE_TLS:-false}
+  NETZ_DOCKER_TOKEN: ${NETZ_DOCKER_TOKEN:-}
   NETZ_AUTH_ENABLED: ${NETZ_AUTH_ENABLED:-true}
   NETZ_AUTH_USER: ${NETZ_AUTH_USER:-admin}
   NETZ_AUTH_PASS: ${NETZ_AUTH_PASS:-}
@@ -56,7 +61,7 @@ x-netz-env: &netz-env
 
 services:
   netmap:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.7.0@sha256:3d757df0983f6d64ac7a7f4073d93446913a4e30168bc0f91d76797bdb0f2a9e
+    image: ghcr.io/kaidewitzka/fox_netmap:1.8.2@sha256:c7a09625e3bbeb8e835b48c9703c269f89128e139935872b02ea241eac7b7d58
     init: true # SIGTERM sauber an den Prozess weiterreichen
     restart: unless-stopped
     environment: *netz-env
@@ -73,7 +78,7 @@ services:
       internal_port: 8399
 
   netmap-scanner:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.7.0@sha256:3d757df0983f6d64ac7a7f4073d93446913a4e30168bc0f91d76797bdb0f2a9e
+    image: ghcr.io/kaidewitzka/fox_netmap:1.8.2@sha256:c7a09625e3bbeb8e835b48c9703c269f89128e139935872b02ea241eac7b7d58
     init: true
     restart: unless-stopped
     command: ["scanner"]
