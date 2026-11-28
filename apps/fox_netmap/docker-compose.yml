@@ -32,6 +32,13 @@ x-netz-env: &netz-env
   NETZ_DOCKER_HOSTS: ${NETZ_DOCKER_HOSTS:-}
   NETZ_DOCKER_INSECURE_TLS: ${NETZ_DOCKER_INSECURE_TLS:-false}
   NETZ_DOCKER_TOKEN: ${NETZ_DOCKER_TOKEN:-}
+  # Proxmox VE API fuer VM/CT-Scan + SDN-Subnetze (read-only, Token-Auth, default AUS - API-Token kann admin-aequivalent sein)
+  NETZ_PVE_ENABLED: ${NETZ_PVE_ENABLED:-false}
+  NETZ_PVE_URLS: ${NETZ_PVE_URLS:-}
+  NETZ_PVE_USER: ${NETZ_PVE_USER:-}
+  NETZ_PVE_TOKEN_ID: ${NETZ_PVE_TOKEN_ID:-}
+  NETZ_PVE_TOKEN_SECRET: ${NETZ_PVE_TOKEN_SECRET:-}
+  NETZ_PVE_INSECURE_TLS: ${NETZ_PVE_INSECURE_TLS:-false}
   NETZ_AUTH_ENABLED: ${NETZ_AUTH_ENABLED:-true}
   NETZ_AUTH_USER: ${NETZ_AUTH_USER:-admin}
   NETZ_AUTH_PASS: ${NETZ_AUTH_PASS:-}
@@ -61,7 +68,7 @@ x-netz-env: &netz-env
 
 services:
   netmap:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.8.2@sha256:c7a09625e3bbeb8e835b48c9703c269f89128e139935872b02ea241eac7b7d58
+    image: ghcr.io/kaidewitzka/fox_netmap:1.9.1@sha256:61c2923135c5b32721d9c3d94bfcb6a727b35f4395cb1fcbfe2351b3a250a8da
     init: true # SIGTERM sauber an den Prozess weiterreichen
     restart: unless-stopped
     environment: *netz-env
@@ -78,7 +85,7 @@ services:
       internal_port: 8399
 
   netmap-scanner:
-    image: ghcr.io/kaidewitzka/fox_netmap:1.8.2@sha256:c7a09625e3bbeb8e835b48c9703c269f89128e139935872b02ea241eac7b7d58
+    image: ghcr.io/kaidewitzka/fox_netmap:1.9.1@sha256:61c2923135c5b32721d9c3d94bfcb6a727b35f4395cb1fcbfe2351b3a250a8da
     init: true
     restart: unless-stopped
     command: ["scanner"]

@@ -10,7 +10,7 @@
   ],
   "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue Geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
   "tipi_version": 13,
-  "version": "1.8.2",
+  "version": "1.9.1",
   "source": "https://github.com/KaiDeWitzka/fox_netmap",
   "website": "https://github.com/KaiDeWitzka/fox_netmap",
   "exposable": true,
@@ -159,6 +159,54 @@
       "required": false,
       "default": "",
       "env_variable": "NETZ_DOCKER_TOKEN"
+    },
+    {
+      "type": "boolean",
+      "label": "Proxmox VE: VM/CT-Scan ueber die PVE-API (read-only)",
+      "hint": "Liest nodes, nodes/{n}/qemu|lxc, .../config, .../agent/... und cluster/sdn/vnets/... auf Port 8006 (HTTPS) - nur lesend, Authentifizierung per API-Token (PVEAPIToken-Header, kein Passwort). ACHTUNG: ein PVE-API-Token kann admin-aequivalent sein; daher default AUS und read-only-Rolle verwenden (VM.Audit + Sys.Audit, bei SDN-Nutzung zusaetzlich SDN.Audit). VMs erscheinen als 'Server/NAS', CTs als 'Container' und haengen in der Karte am PVE-Host; SDN-Subnetze werden als Scan-Subnetze verwendet.",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_PVE_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Proxmox-VE-URLs (https://host:8006, kommagetrennt)",
+      "hint": "z. B. https://192.168.178.10:8006 - ohne Port wird 8006 angenommen. Leer = keine PVE-Abfrage.",
+      "default": "",
+      "required": false,
+      "env_variable": "NETZ_PVE_URLS"
+    },
+    {
+      "type": "text",
+      "label": "PVE-Benutzer (user@realm)",
+      "hint": "z. B. root@pam - der Benutzer, fuer den das API-Token angelegt wurde.",
+      "default": "",
+      "required": false,
+      "env_variable": "NETZ_PVE_USER"
+    },
+    {
+      "type": "text",
+      "label": "PVE API-Token-ID (user@realm!name)",
+      "hint": "z. B. root@pam!fox_netmap - in PVE unter Datacenter > Permissions > API Tokens angelegt (Privilege Separation aktiv lassen; Rolle fox_netmap mit VM.Audit + Sys.Audit, ggf. SDN.Audit, als Permission auf / fuer das Token).",
+      "default": "",
+      "required": false,
+      "env_variable": "NETZ_PVE_TOKEN_ID"
+    },
+    {
+      "type": "password",
+      "label": "PVE API-Token-Secret",
+      "hint": "Wird in PVE nur einmal angezeigt. Wird nur im Authorization-Header (PVEAPIToken) gesendet und nie geloggt. Leer = unveraendert.",
+      "required": false,
+      "default": "",
+      "env_variable": "NETZ_PVE_TOKEN_SECRET"
+    },
+    {
+      "type": "boolean",
+      "label": "PVE: TLS-Zertifikatspruefung abschalten",
+      "hint": "Nur bei selbstsigniertem PVE-Zertifikat. ACHTUNG: nur im eigenen LAN (MITM-Risiko). Default: aus (sichere Pruefung).",
+      "default": false,
+      "required": false,
+      "env_variable": "NETZ_PVE_INSECURE_TLS"
     },
     {
       "type": "boolean",
