@@ -10,7 +10,7 @@
   ],
   "description": "fox_netmap scannt dein lokales Netzwerk (ARP/NDP, optional TR-064 an der FRITZ!Box, SNMP) und zeigt alle Geraete als interaktive Karte und Tabelle: Kategorie, IP, IPv6, MAC, Hostname, Hersteller (OUI), offene Ports, 'Verbunden mit'. Suche/Filter, Zoom, Klick-Details, JSON/CSV/PDF-Export, persistente SQLite-Datenbank mit zyklischen Scans, VPN-Erkennung, Alarme (neue Geraete) per Webhook/Gotify/Ntfy, Login-Schutz, Einbettungs-Tokens. Laeuft als unprivilegierter Container (UID 10001, read_only, nur NET_RAW fuer ping). Open Source (MIT): https://github.com/KaiDeWitzka/fox_netmap",
   "tipi_version": 13,
-  "version": "1.9.1",
+  "version": "1.9.2",
   "source": "https://github.com/KaiDeWitzka/fox_netmap",
   "website": "https://github.com/KaiDeWitzka/fox_netmap",
   "exposable": true,
